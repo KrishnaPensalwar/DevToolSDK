@@ -45,7 +45,7 @@ object FloatingButtonManager {
         val contextWrapper = ContextThemeWrapper(activity, com.google.android.material.R.style.Theme_MaterialComponents_DayNight)
         
         val fab = FloatingActionButton(contextWrapper).apply {
-            setImageResource(android.R.drawable.ic_dialog_info)
+            setImageResource(android.R.drawable.ic_menu_manage)
             setOnClickListener {
                 activity.startActivity(DashboardActivity.newIntent(activity))
             }
