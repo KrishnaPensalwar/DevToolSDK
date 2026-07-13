@@ -20,10 +20,6 @@ object DevTool {
         this.config = config
         LoggerManager.init(context)
 
-        if (config.isLogcatEnabled) {
-            LogcatCollector.start()
-        }
-
         if (config.isCrashReportingEnabled) {
             CrashCollector.start()
         }

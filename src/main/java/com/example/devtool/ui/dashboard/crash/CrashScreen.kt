@@ -28,8 +28,7 @@ import com.example.devtool.core.logging.LogLevel
 import com.example.devtool.core.logging.LoggerManager
 import com.example.devtool.ui.components.EmptyStateView
 import com.example.devtool.ui.components.StatusDot
-import com.example.devtool.ui.theme.colorStatusError
-import com.example.devtool.ui.theme.logRowBackground
+import com.example.devtool.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,7 +40,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
     var selectedCrash by remember { mutableStateOf<DevLog?>(null) }
     val clipboardManager = LocalClipboardManager.current
 
-    Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = modifier.background(sdkBackground)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -52,23 +51,23 @@ fun CrashScreen(modifier: Modifier = Modifier) {
             Text(
                 text = "Crash Reports",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = sdkOnSurface
             )
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(sdkSurfaceVariant)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = "${crashes.size} events",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = sdkOnSurfaceVariant
                 )
             }
         }
 
-        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 0.5.dp)
+        HorizontalDivider(color = sdkSurfaceVariant, thickness = 0.5.dp)
 
         if (crashes.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,7 +75,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
                     Icon(
                         Icons.Default.BugReport,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        tint = sdkOnSurfaceVariant.copy(alpha = 0.4f),
                         modifier = Modifier.size(48.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -98,7 +97,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
     selectedCrash?.let { crash ->
         AlertDialog(
             onDismissRequest = { selectedCrash = null },
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = sdkSurface,
             shape = RoundedCornerShape(12.dp),
             title = {
                 Row(
@@ -109,7 +108,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
                     Text(
                         text = "Crash Details",
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = sdkOnSurface
                     )
                 }
             },
@@ -118,7 +117,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .verticalScroll(rememberScrollState())
                         .background(
-                            MaterialTheme.colorScheme.background,
+                            sdkBackground,
                             RoundedCornerShape(8.dp)
                         )
                         .padding(12.dp)
@@ -127,7 +126,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
                         text = crash.message,
                         fontFamily = FontFamily.Monospace,
                         fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = sdkOnSurface,
                         lineHeight = 16.sp
                     )
                 }
@@ -157,10 +156,10 @@ fun CrashItem(crash: DevLog, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(logRowBackground)
+            .background(sdkBackground)
             .border(
                 width = 0.5.dp,
-                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.05f)
+                color = sdkSurfaceVariant
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -192,7 +191,7 @@ fun CrashItem(crash: DevLog, onClick: () -> Unit) {
                 Text(
                     text = date,
                     fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = sdkOnSurfaceVariant,
                     fontSize = 10.sp
                 )
             }
@@ -202,7 +201,7 @@ fun CrashItem(crash: DevLog, onClick: () -> Unit) {
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = sdkOnSurface,
                 maxLines = 2
             )
         }

@@ -51,6 +51,9 @@ dependencies {
     // OkHttp
     implementation(libs.okhttp)
 
+    // Coil for Image Loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

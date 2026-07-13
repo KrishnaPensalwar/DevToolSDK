@@ -1,7 +1,6 @@
 package com.example.devtool.ui.dashboard.network
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,27 +8,25 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.devtool.core.logging.LoggerManager
+import com.example.devtool.core.utils.ApiNameExtractor
 import com.example.devtool.network.model.NetworkCall
 import com.example.devtool.ui.components.*
+import com.example.devtool.ui.dashboard.network.components.NetworkSummaryBadge
 import com.example.devtool.ui.theme.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,9 +49,6 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
         matchesQuery && matchesMethod
     }
 
-    val successCount = calls.count { it.statusCode in 200..299 }
-    val failedCount = calls.count { it.statusCode >= 400 }
-
     if (selectedCall != null) {
         NetworkDetailScreen(
             call = selectedCall!!,
@@ -64,19 +58,16 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
         return
     }
 
-    Column(modifier = modifier.background(MaterialTheme.colorScheme.background)) {
+    Column(modifier = modifier.background(sdkBackground)) {
+
+        NetworkSummaryBadge(calls = calls)
 
         // Sticky filter header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.95f))
-                .border(
-                    width = 0.5.dp,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(0.dp)
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .background(sdkBackground)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
@@ -84,94 +75,61 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Network Activity",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                DevToolSearchBar(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = "Filter traffic...",
+                    modifier = Modifier.weight(1f)
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                IconButton(
+                    onClick = { scope.launch { repository.clearAll() } },
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(sdkSurface)
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = colorStatusSuccess,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = "$successCount OK",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (failedCount > 0) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Error,
-                                contentDescription = null,
-                                tint = colorStatusError,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "$failedCount Failed",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colorStatusError
-                            )
-                        }
-                    }
-                    IconButton(
-                        onClick = { scope.launch { repository.clearAll() } },
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Clear,
-                            contentDescription = "Clear All",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Clear All",
+                        tint = sdkOnSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
-
-            DevToolSearchBar(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = "Filter URL or endpoint...",
-                modifier = Modifier.fillMaxWidth()
-            )
 
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filters) { filter ->
                     val isSelected = if (filter == "ALL") selectedMethod == null else selectedMethod == filter
-                    DevToolFilterChip(
-                        label = filter,
+                    FilterChip(
                         selected = isSelected,
                         onClick = {
                             selectedMethod = if (filter == "ALL") null else filter
-                        }
+                        },
+                        label = { Text(filter, fontSize = 10.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = sdkSurfaceVariant,
+                            selectedLabelColor = sdkPrimary,
+                            containerColor = sdkSurface,
+                            labelColor = sdkOnSurfaceVariant
+                        ),
+                        border = null,
+                        shape = RoundedCornerShape(10.dp)
                     )
                 }
             }
         }
 
         if (filteredCalls.isEmpty()) {
-            EmptyStateView(
-                message = "No network calls",
-                subtitle = "Make an HTTP request to see it here"
-            )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No network activity", color = sdkOnSurfaceVariant)
+            }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(filteredCalls) { call ->
                     NetworkCallItem(call = call, onClick = { selectedCall = call })
@@ -182,104 +140,106 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun NetworkCallItem(call: NetworkCall, onClick: () -> Unit) {
-    val statusDotColor = when {
+fun NetworkCallItem(
+    call: NetworkCall,
+    onClick: () -> Unit
+) {
+    val statusColor = when {
         call.statusCode in 200..299 -> colorStatusSuccess
+        call.statusCode in 300..399 -> colorStatusWarning
         call.statusCode in 400..599 -> colorStatusError
         else -> colorStatusNeutral
     }
-    val statusTextColor = when {
-        call.statusCode in 200..299 -> MaterialTheme.colorScheme.primary
-        call.statusCode in 400..599 -> colorStatusError
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    val methodColor = methodColor(call.method)
-    val statusLabel = when {
-        call.statusCode in 200..299 -> "${call.statusCode} OK"
-        call.statusCode in 400..499 -> "${call.statusCode} Auth"
-        call.statusCode >= 500 -> "${call.statusCode} Error"
-        else -> call.statusCode.toString()
-    }
-    val sizeLabel = formatSize(call.responseSize)
 
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(logRowBackground)
-            .border(
-                width = 0.5.dp,
-                color = Color.White.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(0.dp)
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = sdkSurface
+        )
     ) {
-        StatusDot(color = statusDotColor)
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = call.endpoint.ifEmpty { call.url },
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = call.method,
-                    fontSize = 10.sp,
+                    text = ApiNameExtractor.extract(call.url),
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = methodColor
-                )
-                Text(
-                    text = call.host,
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false)
+                    overflow = TextOverflow.Ellipsis,
+                    color = sdkOnSurface
                 )
-            }
-        }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.End) {
+                Spacer(Modifier.height(6.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = methodColor(call.method).copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = call.method,
+                            color = methodColor(call.method),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 9.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = call.host,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = sdkOnSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusDot(color = statusColor, modifier = Modifier.size(6.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = call.statusCode.toString(),
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
                 Text(
-                    text = statusLabel,
+                    text = "${call.duration}ms",
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = statusTextColor
-                )
-                Text(
-                    text = "${call.duration}ms • $sizeLabel",
-                    fontSize = 10.sp,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = sdkOnSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
+
+            Spacer(Modifier.width(8.dp))
+
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
+                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                null,
+                tint = sdkSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
         }
     }
-}
-
-private fun formatSize(bytes: Long): String = when {
-    bytes >= 1_048_576 -> String.format("%.1fMB", bytes / 1_048_576.0)
-    bytes >= 1024 -> String.format("%.1fkB", bytes / 1024.0)
-    else -> "${bytes}B"
 }
 
 fun methodColor(method: String): Color = when (method.uppercase()) {
