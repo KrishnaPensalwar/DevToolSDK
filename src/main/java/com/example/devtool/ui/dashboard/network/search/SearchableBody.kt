@@ -28,46 +28,7 @@ fun SearchableBody(
         mutableStateOf("")
     }
 
-    val imageUrls = remember(body) {
-        extractImageUrls(body)
-    }
-
     Column {
-
-        if (imageUrls.isNotEmpty()) {
-
-            Text(
-                text = "Detected Images",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-
-                imageUrls.forEach { url ->
-
-                    AsyncImage(
-                        model = url,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable {
-                                onImageClick(url)
-                            }
-                    )
-                }
-            }
-        }
-
         DevToolSearchBar(
             value = searchQuery,
             onValueChange = {

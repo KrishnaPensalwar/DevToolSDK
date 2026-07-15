@@ -1,6 +1,7 @@
 package com.example.devtool.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -84,6 +85,7 @@ fun DevToolSearchBar(
         modifier = modifier
             .clip(RoundedCornerShape(24.dp))
             .background(sdkSurface)
+            .border(1.dp,Color.White.copy(alpha = 0.2f), RoundedCornerShape(24.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
