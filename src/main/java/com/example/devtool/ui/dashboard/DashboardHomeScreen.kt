@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.devtool.DevToolSdk
 import com.example.devtool.core.logging.LoggerManager
 import com.example.devtool.ui.dashboard.network.components.NetworkSummaryBadge
 import com.example.devtool.ui.theme.*
@@ -29,6 +30,8 @@ fun DashboardHomeScreen(modifier: Modifier = Modifier) {
     val allLogs by logsRepo.logs.collectAsState()
     
     val crashesCount = allLogs.count { it.level.name == "CRASH" }
+    val isMockingEnabled: MutableState<Boolean> = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
+
 
     Column(
         modifier = modifier
@@ -38,6 +41,24 @@ fun DashboardHomeScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        Text(
+            text = "DevTool Mocking",
+            style = MaterialTheme.typography.headlineMedium
+        )
+        Switch(
+            checked = isMockingEnabled.value,
+            onCheckedChange = { enabled ->
+                isMockingEnabled.value = enabled
+                DevToolSdk.setMockingEnabled(enabled)
+            },
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        Text(
+            text = if (isMockingEnabled.value) "Mocking is enabled" else "Mocking is disabled",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Network Snapshot", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = sdkPrimary)
             NetworkSummaryBadge(calls = networkCalls)
