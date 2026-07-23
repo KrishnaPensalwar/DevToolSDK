@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.devtool"
+    namespace = "io.github.krishnapensalwar.devkit"
     compileSdk = 35
 
     defaultConfig {
