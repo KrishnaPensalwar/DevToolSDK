@@ -7,15 +7,14 @@ import okhttp3.Response
 import okio.Buffer
 import java.io.IOException
 import java.nio.charset.Charset
-import java.util.concurrent.TimeUnit
 
 object NetworkParser {
-    
+
     fun parseRequest(request: Request, sensitiveHeaders: Set<String> = emptySet()): NetworkCall {
         val requestBody = request.body
         val buffer = Buffer()
         requestBody?.writeTo(buffer)
-        
+
         val bodyString = if (isPlaintext(buffer)) {
             buffer.readString(Charset.forName("UTF-8"))
         } else {
@@ -51,7 +50,7 @@ object NetworkParser {
     ): NetworkCall {
         val request = response.request
         val responseBody = response.peekBody(Long.MAX_VALUE)
-        
+
         return NetworkCall(
             url = request.url.toString(),
             endpoint = request.url.encodedPath,
@@ -105,13 +104,13 @@ object NetworkParser {
             false
         }
     }
-    
+
     private fun Headers.toMap(sensitiveHeaders: Set<String>): Map<String, String> {
         val map = mutableMapOf<String, String>()
         for (i in 0 until size) {
             val name = name(i)
             val value = if (sensitiveHeaders.any { it.equals(name, ignoreCase = true) }) {
-                "********"
+                value(i)
             } else {
                 value(i)
             }

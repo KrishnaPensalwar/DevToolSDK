@@ -53,7 +53,9 @@ object DevToolSdk {
             .fallbackToDestructiveMigration()
             .build()
 
+        // Initialize mock manager and cache manager
         MockManager.init(database!!, application)
+        com.example.devtool.cache.CacheManager.init(database!!)
 
         setMockingEnabled(true)
     }
@@ -83,5 +85,28 @@ object DevToolSdk {
         currentConfig?.mockResolver = resolver
     }
 
-    fun clientOrNull(): HttpClient? = clientRef
+    // ---------------------------------------------------------------------
+    // Cache inspection and manipulation API (available when mocking is enabled)
+    // ---------------------------------------------------------------------
+    /** Retrieve all cached responses. */
+    suspend fun getAllCachedResponses(): List<com.example.devtool.database.CachedResponseEntity> =
+        database?.cachedResponseDao()?.getAll() ?: emptyList()
+
+    /** Update the body of a cached response identified by URL and method. */
+    suspend fun updateCachedResponse(
+        url: String,
+        method: String,
+        newBody: String
+    ) {
+        val dao = database?.cachedResponseDao() ?: return
+        val existing = dao.get(url, method) ?: return
+        val updated = existing.copy(body = newBody)
+        dao.insert(updated)
+    }
+
+    /** Clear all cached responses. */
+    suspend fun clearCache() {
+        database?.cachedResponseDao()?.clearAll()
+    }
+
 }

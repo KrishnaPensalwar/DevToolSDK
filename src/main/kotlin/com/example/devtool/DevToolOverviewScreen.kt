@@ -7,12 +7,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
+import com.example.devtool.ui.CacheScreen
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * Simple overview screen for the DevTool SDK.
@@ -20,8 +27,10 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun DevToolOverviewScreen() {
+    val scope = rememberCoroutineScope()
+    var showCacheScreen by remember { mutableStateOf(false) }
     // Remember the current mocking state
-    val isMockingEnabled: MutableState<Boolean> = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
+    val isMockingEnabled = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -49,7 +58,24 @@ fun DevToolOverviewScreen() {
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp)
                 )
+                Button(
+                    onClick = { showCacheScreen = true },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text("View Cached Responses")
+                }
+                Button(
+                    onClick = { scope.launch { DevToolSdk.clearCache() } },
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Text("Clear Cache")
+                }
             }
         }
     )
+    // Show CacheScreen when button clicked
+    if (showCacheScreen) {
+        CacheScreen(onClose = { showCacheScreen = false })
+    }
 }
+

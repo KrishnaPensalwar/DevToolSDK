@@ -106,7 +106,7 @@ fun DashboardScreen() {
         ) { paddingValues ->
             val modifier = Modifier.padding(paddingValues).fillMaxSize()
             when (selectedTab) {
-                DashboardTab.HOME -> DashboardHomeScreen(modifier = modifier)
+                DashboardTab.HOME -> DevToolOverviewScreen()
                 DashboardTab.NETWORK -> NetworkListScreen(modifier = modifier)
                 DashboardTab.ANALYTICS -> AnalyticsScreen(modifier = modifier)
                 DashboardTab.CRASHES -> CrashScreen(modifier = modifier)

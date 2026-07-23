@@ -1,8 +1,8 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.ksp)
-    alias(libs.plugins.kotlin.compose)
+    alias(devtoolLibs.plugins.android.library)
+    alias(devtoolLibs.plugins.kotlin.android)
+    alias(devtoolLibs.plugins.kotlin.ksp)
+    alias(devtoolLibs.plugins.kotlin.compose)
 }
 
 android {
@@ -37,45 +37,44 @@ java {
 }
 
 dependencies {
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(devtoolLibs.androidx.datastore.preferences)
+    implementation(devtoolLibs.androidx.lifecycle.viewmodel.ktx)
+    implementation(devtoolLibs.androidx.lifecycle.runtime.ktx)
+    implementation(devtoolLibs.androidx.core.ktx)
+    implementation(devtoolLibs.androidx.appcompat)
+    implementation(devtoolLibs.material)
     
     // Room
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
+    implementation(devtoolLibs.androidx.room.runtime)
+    implementation(devtoolLibs.androidx.room.ktx)
+    ksp(devtoolLibs.androidx.room.compiler)
 
     // Compose
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.compose.icons.extended)
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(platform(devtoolLibs.androidx.compose.bom))
+    implementation(devtoolLibs.androidx.compose.ui)
+    implementation(devtoolLibs.androidx.compose.ui.graphics)
+    implementation(devtoolLibs.androidx.compose.ui.tooling.preview)
+    implementation(devtoolLibs.androidx.compose.material3)
+    implementation(devtoolLibs.compose.icons.extended)
+    implementation(devtoolLibs.androidx.activity.compose)
+    implementation(devtoolLibs.androidx.lifecycle.runtime.ktx)
+    debugImplementation(devtoolLibs.androidx.compose.ui.tooling)
 
     // OkHttp
-    implementation(libs.okhttp)
+    implementation(devtoolLibs.okhttp)
 
     // Coil for Image Loading
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(devtoolLibs.coil.compose)
 
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.androidx.junit)
+    testImplementation(devtoolLibs.junit)
+    androidTestImplementation(devtoolLibs.androidx.espresso.core)
+    androidTestImplementation(devtoolLibs.androidx.junit)
 
-    val ktor_version = "3.2.3"
-    implementation("io.ktor:ktor-client-android:$ktor_version")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
-    implementation("io.ktor:ktor-client-logging:$ktor_version")
-    implementation("io.ktor:ktor-client-serialization:$ktor_version")
-    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation(devtoolLibs.ktor.client.android)
+    implementation(devtoolLibs.ktor.client.content.negotiation)
+    implementation(devtoolLibs.ktor.serialization.kotlinx.json)
+    implementation(devtoolLibs.ktor.client.logging)
+    implementation(devtoolLibs.ktor.client.serialization)
+    implementation(devtoolLibs.ktor.client.core)
 
 }

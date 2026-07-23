@@ -21,6 +21,10 @@ import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.InternalAPI
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import io.ktor.client.statement.bodyAsText
 
 /**
  * Mutable configuration for [DevToolPlugin].
@@ -79,6 +83,23 @@ val DevToolPlugin = createClientPlugin(
     onResponse { response ->
         config.responseObserver(response)
         config.recorder?.invoke(response.call.request, response)
+        // Save to cache when mocking enabled
+        if (config.mockingEnabled) {
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    val bodyText = response.bodyAsText()
+                    com.example.devtool.cache.CacheManager.save(
+                        url = response.call.request.url.toString(),
+                        method = response.call.request.method.value,
+                        status = response.status.value,
+                        headers = response.headers,
+                        body = bodyText
+                    )
+                } catch (e: Exception) {
+                    // ignore cache errors
+                }
+            }
+        }
     }
 
     on(Send) { request ->
@@ -86,11 +107,36 @@ val DevToolPlugin = createClientPlugin(
             return@on proceed(request)
         }
 
-        val mock = config.mockResolver(request) ?: defaultMockResponse(request)
-        buildMockCall(
+        // Try custom mock resolver first
+        val mock = config.mockResolver(request)
+        if (mock != null) {
+            return@on buildMockCall(
+                client = ktorClient,
+                requestData = request.build(),
+                mock = mock,
+                callContext = coroutineContext
+            )
+        }
+
+        // Attempt to serve from cache
+        val cached = com.example.devtool.cache.CacheManager.get(request.url.toString(), request.method.value)
+        if (cached != null) {
+            val mockFromCache = com.example.devtool.cache.CacheManager.toMockResponse(cached)
+            return@on buildMockCall(
+                client = ktorClient,
+                requestData = request.build(),
+                mock = mockFromCache,
+                callContext = coroutineContext
+            )
+        }
+
+        // No mock or cache, proceed to network
+        // If mocking is enabled but no cache, respond with default mock
+        val defaultMock = defaultMockResponse(request)
+        return@on buildMockCall(
             client = ktorClient,
             requestData = request.build(),
-            mock = mock,
+            mock = defaultMock,
             callContext = coroutineContext
         )
     }
