@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network.json
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -27,8 +28,12 @@ fun JsonNodeViewer(
     key: String,
     value: Any,
     searchQuery: String = "",
+    path: List<String> = emptyList(),
+    onFieldClick: ((List<String>, Any) -> Unit)? = null,
     onImageClick: (String) -> Unit
 ) {
+    Log.d("TAG", "JsonObject in NodeViewer: $value")
+    Log.d("TAG", "JsonObject key: $key")
 
     when (value) {
 
@@ -37,6 +42,8 @@ fun JsonNodeViewer(
                 jsonObject = value,
                 rootName = key,
                 searchQuery = searchQuery,
+                path = path,
+                onFieldClick = onFieldClick,
                 onImageClick = onImageClick
             )
         }
@@ -46,6 +53,8 @@ fun JsonNodeViewer(
                 jsonArray = value,
                 rootName = key,
                 searchQuery = searchQuery,
+                path = path,
+                onFieldClick = onFieldClick,
                 onImageClick = onImageClick
             )
         }
@@ -75,6 +84,9 @@ fun JsonNodeViewer(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable(enabled = onFieldClick != null) {
+                                onFieldClick?.invoke(path, value)
+                            }
                             .padding(vertical = 2.dp)
                     ) {
 
@@ -121,23 +133,6 @@ fun JsonNodeViewer(
 
                     }
 
-//                    if (isImage) {
-//
-//                        AsyncImage(
-//                            model = valueString,
-//                            contentDescription = null,
-//                            modifier = Modifier
-//                                .padding(vertical = 4.dp)
-//                                .size(60.dp)
-//                                .background(
-//                                    color = MaterialTheme.colorScheme.surfaceVariant,
-//                                    shape = RoundedCornerShape(4.dp)
-//                                )
-//                                .clickable {
-//                                    onImageClick(valueString)
-//                                }
-//                        )
-//                    }
                 }
             }
         }

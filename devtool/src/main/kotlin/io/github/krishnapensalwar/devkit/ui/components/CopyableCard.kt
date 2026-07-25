@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.components
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,9 +31,13 @@ fun CopyableCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val TAG = "NetworkInterceptor"
+
     var expanded by rememberSaveable {
         mutableStateOf(expandedByDefault)
     }
+
+    Log.d(TAG, "[CopyableCard] Rendering card '$title'. Expanded state: $expanded")
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -43,7 +48,11 @@ fun CopyableCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                    .clickable { 
+                        val targetState = !expanded
+                        Log.d(TAG, "[CopyableCard] Card '$title' clicked. Toggling expanded: $expanded -> $targetState")
+                        expanded = targetState 
+                    }
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -56,7 +65,10 @@ fun CopyableCard(
                 )
 
                 IconButton(
-                    onClick = onCopy,
+                    onClick = {
+                        Log.d(TAG, "[CopyableCard] Copy content triggered for card: '$title'")
+                        onCopy()
+                    },
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -78,6 +90,9 @@ fun CopyableCard(
             }
 
             AnimatedVisibility(expanded) {
+                if (expanded) {
+                    Log.d(TAG, "[CopyableCard] Card '$title' content visible. Rendering body.")
+                }
                 Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
                     content()
                 }

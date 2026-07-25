@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -29,10 +30,13 @@ fun CollapsibleSection(
     defaultExpanded: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val TAG = "NetworkInterceptor"
 
     var expanded by remember {
         mutableStateOf(defaultExpanded)
     }
+
+    Log.d(TAG, "[CollapsibleSection] Rendering '$title'. Expanded state: $expanded, Count: $count")
 
     Column(
         modifier = Modifier
@@ -51,7 +55,9 @@ fun CollapsibleSection(
                     RoundedCornerShape(8.dp)
                 )
                 .clickable {
-                    expanded = !expanded
+                    val targetState = !expanded
+                    Log.d(TAG, "[CollapsibleSection] Header '$title' clicked. Toggling expanded state: $expanded -> $targetState")
+                    expanded = targetState
                 }
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -104,7 +110,9 @@ fun CollapsibleSection(
             enter = expandVertically(),
             exit = shrinkVertically()
         ) {
-
+            if (expanded) {
+                Log.d(TAG, "[CollapsibleSection] Visibility evaluated to visible. Rendering body for '$title'")
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

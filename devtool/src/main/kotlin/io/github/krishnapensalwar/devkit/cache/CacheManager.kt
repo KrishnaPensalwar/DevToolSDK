@@ -52,6 +52,24 @@ object CacheManager {
         dao.insert(entity)
     }
 
+    /** Save a response to the cache using raw JSON headers. */
+    suspend fun saveWithHeadersJson(
+        url: String,
+        method: String,
+        status: Int,
+        headersJson: String,
+        body: String
+    ) = withContext(Dispatchers.IO) {
+        val entity = CachedResponseEntity(
+            url = url,
+            method = method,
+            status = status,
+            headersJson = headersJson,
+            body = body
+        )
+        dao.insert(entity)
+    }
+
     /** Convert a CachedResponseEntity into a MockResponse used by the plugin. */
     fun toMockResponse(entity: CachedResponseEntity): MockResponse {
         // Build Headers from stored JSON (name -> comma‑separated values)

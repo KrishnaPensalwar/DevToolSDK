@@ -97,11 +97,29 @@ object DevToolSdk {
         url: String,
         method: String,
         newBody: String
-    ) {
-        val dao = database?.cachedResponseDao() ?: return
-        val existing = dao.get(url, method) ?: return
-        val updated = existing.copy(body = newBody)
-        dao.insert(updated)
+    ) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        android.util.Log.d("NetworkInterceptor", "[DevToolSdk] updateCachedResponse called for URL=$url, Method=$method")
+        val dao = database?.cachedResponseDao()
+        if (dao == null) {
+            android.util.Log.e("NetworkInterceptor", "[DevToolSdk] Database or CachedResponseDao is NULL")
+            return@withContext
+        }
+        val existing = dao.get(url, method)
+        if (existing == null) {
+            android.util.Log.w("NetworkInterceptor", "[DevToolSdk] No existing cached response found for URL=$url, Method=$method. Inserting new entry.")
+            val newEntity = io.github.krishnapensalwar.devkit.database.CachedResponseEntity(
+                url = url,
+                method = method,
+                status = 200,
+                headersJson = "{}",
+                body = newBody
+            )
+            dao.insert(newEntity)
+        } else {
+            val updated = existing.copy(body = newBody)
+            dao.insert(updated)
+            android.util.Log.d("NetworkInterceptor", "[DevToolSdk] Updated existing cached response successfully in DB.")
+        }
     }
 
     /** Clear all cached responses. */

@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network.json
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -35,12 +36,16 @@ fun JsonObjectViewer(
     jsonObject: JSONObject,
     rootName: String? = null,
     searchQuery: String = "",
+    path: List<String> = emptyList(),
+    onFieldClick: ((List<String>, Any) -> Unit)? = null,
     onImageClick: (String) -> Unit
 ) {
 
     val keys = remember(jsonObject) {
         jsonObject.keys().asSequence().toList()
     }
+    Log.d("TAG", "JsonObject in JSONobjectViewer: $jsonObject")
+
 
     val filteredKeys = remember(keys, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -62,6 +67,8 @@ fun JsonObjectViewer(
                     key = key,
                     value = jsonObject.get(key),
                     searchQuery = searchQuery,
+                    path = path + key,
+                    onFieldClick = onFieldClick,
                     onImageClick = onImageClick
                 )
             }
@@ -114,6 +121,8 @@ fun JsonObjectViewer(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        Log.d("TAG", "JsonObject in objectViewer: $jsonObject")
+
 
         AnimatedVisibility(visible = expanded) {
 
@@ -139,6 +148,8 @@ fun JsonObjectViewer(
                         key = key,
                         value = jsonObject.get(key),
                         searchQuery = searchQuery,
+                        path = path + key,
+                        onFieldClick = onFieldClick,
                         onImageClick = onImageClick
                     )
                 }

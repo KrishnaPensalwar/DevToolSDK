@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network.json
 
+import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +13,8 @@ import org.json.JSONObject
 fun ExpandableJsonViewer(
     jsonString: String?,
     searchQuery: String = "",
+    path: List<String> = emptyList(),
+    onFieldClick: ((List<String>, Any) -> Unit)? = null,
     onImageClick: (String) -> Unit
 ) {
     if (jsonString.isNullOrBlank()) {
@@ -42,6 +45,8 @@ fun ExpandableJsonViewer(
                 jsonObject = jsonObject,
                 rootName = "Root",
                 searchQuery = searchQuery,
+                path = path,
+                onFieldClick = onFieldClick,
                 onImageClick = onImageClick
             )
         }
@@ -51,6 +56,8 @@ fun ExpandableJsonViewer(
                 jsonArray = jsonArray,
                 rootName = "Root",
                 searchQuery = searchQuery,
+                path = path,
+                onFieldClick = onFieldClick,
                 onImageClick = onImageClick
             )
         }

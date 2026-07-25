@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlin.compose)
+
+    `maven-publish`
+    signing
 }
 
 android {
@@ -38,10 +41,65 @@ android {
     buildFeatures {
         compose = true
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+
 }
+
+group = "io.github.krishnapensalwar"
+version = "1.0.0"
 
 kotlin {
     jvmToolchain(17)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+
+                from(components["release"])
+
+                groupId = project.group.toString()
+                artifactId = "devkit"
+                version = project.version.toString()
+
+                pom {
+                    name.set("DevKit")
+                    description.set(
+                        "An Android developer toolkit for network inspection, logging, database inspection, storage inspection, and debugging utilities."
+                    )
+
+                    url.set("https://github.com/KrishnaPensalwar/DevToolSDK")
+
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id.set("KrishnaPensalwar")
+                            name.set("Krishna Pensalwar")
+                            email.set("krishnapensalwar3@gmail.com")
+                        }
+                    }
+
+                    scm {
+                        connection.set("scm:git:git://github.com/KrishnaPensalwar/DevToolSDK.git")
+                        developerConnection.set("scm:git:ssh://github.com/KrishnaPensalwar/DevToolSDK.git")
+                        url.set("https://github.com/KrishnaPensalwar/DevToolSDK")
+                    }
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -83,4 +141,23 @@ dependencies {
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.serialization)
     implementation(libs.ktor.client.core)
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "MavenCentral"
+
+            url = uri("https://central.sonatype.com/repository/maven-releases/")
+
+            credentials {
+                username = findProperty("mavenCentralUsername") as String?
+                password = findProperty("mavenCentralPassword") as String?
+            }
+        }
+    }
+}
+
+signing {
+    sign(publishing.publications)
 }

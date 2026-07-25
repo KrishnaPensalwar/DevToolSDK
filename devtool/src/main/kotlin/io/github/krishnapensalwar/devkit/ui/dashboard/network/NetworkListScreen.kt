@@ -236,7 +236,7 @@ fun NetworkCallItem(
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 null,
-                tint = sdkSurfaceVariant,
+                tint = sdkOnSurface,
                 modifier = Modifier.size(20.dp)
             )
         }

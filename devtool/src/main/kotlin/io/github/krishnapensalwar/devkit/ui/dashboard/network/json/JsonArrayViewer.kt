@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network.json
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,8 @@ fun JsonArrayViewer(
     jsonArray: JSONArray,
     rootName: String,
     searchQuery: String = "",
+    path: List<String> = emptyList(),
+    onFieldClick: ((List<String>, Any) -> Unit)? = null,
     onImageClick: (String) -> Unit
 ) {
 
@@ -57,6 +60,8 @@ fun JsonArrayViewer(
             expanded = true
         }
     }
+    Log.d("TAG", "JsonObject in NodeViewer: $jsonArray")
+
 
     Column {
 
@@ -119,6 +124,8 @@ fun JsonArrayViewer(
                         key = "[$index]",
                         value = jsonArray.get(index),
                         searchQuery = searchQuery,
+                        path = path + "[$index]",
+                        onFieldClick = onFieldClick,
                         onImageClick = onImageClick
                     )
                 }
