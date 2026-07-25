@@ -3,11 +3,12 @@ package io.github.krishnapensalwar.devkit
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.krishnapensalwar.devkit.ui.CacheScreen
+import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import kotlinx.coroutines.launch
 
 /**
@@ -15,9 +16,10 @@ import kotlinx.coroutines.launch
  * Displays a switch that enables or disables mocking globally.
  */
 @Composable
-fun DevToolOverviewScreen() {
+fun DevToolOverviewScreen(
+    backStack: SnapshotStateList<Any>
+) {
     val scope = rememberCoroutineScope()
-    var showCacheScreen by remember { mutableStateOf(false) }
     val isMockingEnabled = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
 
     Scaffold(
@@ -78,7 +80,7 @@ fun DevToolOverviewScreen() {
 
             // Actions Section
             Button(
-                onClick = { showCacheScreen = true },
+                onClick = { backStack.add(Destination.CacheList) },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("View Cached Responses")
@@ -91,9 +93,5 @@ fun DevToolOverviewScreen() {
                 Text("Clear Cache")
             }
         }
-    }
-
-    if (showCacheScreen) {
-        CacheScreen(onClose = { showCacheScreen = false })
     }
 }

@@ -27,15 +27,19 @@ import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.components.StatusDot
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.components.NetworkSummaryBadge
 import io.github.krishnapensalwar.devkit.ui.theme.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NetworkListScreen(modifier: Modifier = Modifier) {
+fun NetworkListScreen(
+    backStack: SnapshotStateList<Any>,
+    modifier: Modifier = Modifier
+) {
     val repository = LoggerManager.getNetworkRepository()
     val calls by repository.calls.collectAsState()
     val scope = rememberCoroutineScope()
-    var selectedCall by remember { mutableStateOf<NetworkCall?>(null) }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedMethod by remember { mutableStateOf<String?>(null) }
@@ -48,15 +52,6 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
         val matchesMethod = selectedMethod == null || selectedMethod == "ALL" ||
                 call.method.equals(selectedMethod, ignoreCase = true)
         matchesQuery && matchesMethod
-    }
-
-    if (selectedCall != null) {
-        NetworkDetailScreen(
-            call = selectedCall!!,
-            onDismiss = { selectedCall = null },
-            modifier = modifier
-        )
-        return
     }
 
     Column(modifier = modifier.background(sdkBackground)) {
@@ -133,7 +128,10 @@ fun NetworkListScreen(modifier: Modifier = Modifier) {
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(filteredCalls) { call ->
-                    NetworkCallItem(call = call, onClick = { selectedCall = call })
+                    NetworkCallItem(
+                        call = call,
+                        onClick = { backStack.add(Destination.NetworkDetail(call.id)) }
+                    )
                 }
             }
         }

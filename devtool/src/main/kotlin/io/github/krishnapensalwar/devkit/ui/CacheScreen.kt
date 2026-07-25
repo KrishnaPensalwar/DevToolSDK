@@ -5,22 +5,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.DevToolSdk
 import io.github.krishnapensalwar.devkit.database.CachedResponseEntity
-import io.github.krishnapensalwar.devkit.ui.dashboard.network.ResponseEditorScreen
+import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import kotlinx.coroutines.launch
 
 @Composable
 fun CacheScreen(
-    onClose: () -> Unit
+    backStack: SnapshotStateList<Any>
 ) {
     val scope = rememberCoroutineScope()
     var cachedResponses by remember { mutableStateOf<List<CachedResponseEntity>>(emptyList()) }
-    var editItem by remember { mutableStateOf<CachedResponseEntity?>(null) }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -106,7 +106,15 @@ fun CacheScreen(
                                         modifier = Modifier.padding(bottom = 12.dp)
                                     )
                                     Button(
-                                        onClick = { editItem = item },
+                                        onClick = {
+                                            backStack.add(
+                                                Destination.ResponseEditor(
+                                                    url = item.url,
+                                                    method = item.method,
+                                                    initialBody = item.body
+                                                )
+                                            )
+                                        },
                                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                                     ) {
                                         Text("Edit Response", fontSize = 12.sp)
@@ -118,7 +126,7 @@ fun CacheScreen(
                 }
 
                 Button(
-                    onClick = onClose,
+                    onClick = { backStack.removeLast() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp)
@@ -127,20 +135,5 @@ fun CacheScreen(
                 }
             }
         }
-    }
-
-    if (editItem != null) {
-        ResponseEditorScreen(
-            initialBody = editItem!!.body,
-            endpoint = "${editItem!!.method} ${editItem!!.url}",
-            onDismiss = { editItem = null },
-            onSave = { newBody ->
-                scope.launch {
-                    DevToolSdk.updateCachedResponse(editItem!!.url, editItem!!.method, newBody)
-                    cachedResponses = DevToolSdk.getAllCachedResponses()
-                }
-                editItem = null
-            }
-        )
     }
 }
