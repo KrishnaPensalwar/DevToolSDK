@@ -1,4 +1,4 @@
-package com.example.devtool
+package io.github.krishnapensalwar.devkit
 
 import org.junit.Test
 
