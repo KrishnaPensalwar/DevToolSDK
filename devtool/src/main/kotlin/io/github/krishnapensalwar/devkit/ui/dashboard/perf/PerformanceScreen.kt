@@ -17,11 +17,15 @@ import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.core.logging.DevLog
 import io.github.krishnapensalwar.devkit.core.logging.LogLevel
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
+import androidx.navigation.NavController
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun PerformanceScreen(modifier: Modifier = Modifier) {
+fun PerformanceScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     val repository = LoggerManager.getRepository()
     val allLogs by repository.logs.collectAsState()
     val perfLogs = allLogs.filter { it.level == LogLevel.PERFORMANCE }.take(50)

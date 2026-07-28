@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
+import androidx.navigation.NavController
+import io.github.krishnapensalwar.devkit.ui.navigation.pop
 import io.github.krishnapensalwar.devkit.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,8 +43,8 @@ enum class DetailTab { OVERVIEW, REQUEST, RESPONSE }
 @Composable
 fun NetworkDetailScreen(
     call: NetworkCall,
-    modifier: Modifier = Modifier,
-    onDismiss: () -> Unit
+    navController: NavController,
+    modifier: Modifier = Modifier
 ) {
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -57,7 +59,11 @@ fun NetworkDetailScreen(
         modifier = modifier,
         containerColor = sdkBackground,
         topBar = {
-            Column(modifier = Modifier.background(sdkBackground)) {
+            Column(
+                modifier = Modifier
+                    .background(sdkBackground)
+                    .statusBarsPadding()
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -66,7 +72,7 @@ fun NetworkDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(
-                        onClick = onDismiss,
+                        onClick = { navController.pop() },
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
@@ -153,7 +159,7 @@ fun NetworkDetailScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(16.dp)
         ) {
             Card(
                 modifier = Modifier

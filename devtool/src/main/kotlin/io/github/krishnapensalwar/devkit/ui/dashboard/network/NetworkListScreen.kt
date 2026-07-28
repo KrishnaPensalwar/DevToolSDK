@@ -27,14 +27,15 @@ import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.components.StatusDot
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.components.NetworkSummaryBadge
 import io.github.krishnapensalwar.devkit.ui.theme.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.navigation.Destination
+import io.github.krishnapensalwar.devkit.ui.navigation.navigate
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NetworkListScreen(
-    backStack: SnapshotStateList<Any>,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
     val repository = LoggerManager.getNetworkRepository()
@@ -130,7 +131,7 @@ fun NetworkListScreen(
                 items(filteredCalls) { call ->
                     NetworkCallItem(
                         call = call,
-                        onClick = { backStack.add(Destination.NetworkDetail(call.id)) }
+                        onClick = { navController.navigate(Destination.NetworkDetail(call.id)) }
                     )
                 }
             }

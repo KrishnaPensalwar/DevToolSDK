@@ -14,10 +14,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.theme.*
 
 @Composable
-fun DeviceInfoScreen(modifier: Modifier = Modifier) {
+fun DeviceInfoScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
 

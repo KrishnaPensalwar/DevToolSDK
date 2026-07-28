@@ -20,18 +20,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.ui.components.*
 import io.github.krishnapensalwar.devkit.ui.theme.*
+import androidx.navigation.NavController
 import java.io.File
 
 @Composable
-fun StorageInspectorScreen(modifier: Modifier = Modifier) {
+fun StorageInspectorScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Databases", "SharedPrefs")
 
-    Column(modifier = modifier.background(sdkBackground)) {
+    Column(modifier = modifier.background(sdkBackground).padding(16.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             tabs.forEachIndexed { index, title ->

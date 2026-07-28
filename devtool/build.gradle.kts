@@ -131,9 +131,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Navigation 3
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.androidx.navigation3.ui)
+    // Compose Navigation 2
+    implementation(libs.androidx.navigation.compose)
 
     // OkHttp
     implementation(libs.okhttp)

@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.json.ExpandableJsonViewer
+import androidx.navigation.NavController
+import io.github.krishnapensalwar.devkit.ui.navigation.pop
 import io.github.krishnapensalwar.devkit.ui.theme.*
 import org.json.JSONArray
 import org.json.JSONObject
@@ -34,7 +36,7 @@ import org.json.JSONObject
 fun ResponseEditorScreen(
     initialBody: String,
     endpoint: String,
-    onDismiss: () -> Unit,
+    navController: NavController,
     onSave: (String) -> Unit
 ) {
     var jsonStringState by remember { mutableStateOf(initialBody) }
@@ -51,13 +53,14 @@ fun ResponseEditorScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .background(sdkBackground)
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(
-                    onClick = onDismiss,
+                    onClick = { navController.pop() },
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
@@ -101,6 +104,7 @@ fun ResponseEditorScreen(
                         onClick = {
                             android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string to DB save: $jsonStringState")
                             onSave(jsonStringState)
+                            navController.pop()
                         },
                         modifier = Modifier
                             .size(44.dp)
@@ -121,7 +125,7 @@ fun ResponseEditorScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(16.dp)
         ) {
             Text(
                 text = endpoint,

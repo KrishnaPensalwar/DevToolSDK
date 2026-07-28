@@ -32,24 +32,28 @@ import io.github.krishnapensalwar.devkit.ui.theme.colorStatusError
 import io.github.krishnapensalwar.devkit.ui.theme.sdkBackground
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurfaceVariant
+import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurfaceVariant
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun CrashScreen(modifier: Modifier = Modifier) {
+fun CrashScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     val repository = LoggerManager.getRepository()
     val allLogs by repository.logs.collectAsState()
     val crashes = allLogs.filter { it.level == LogLevel.CRASH }
     var selectedCrash by remember { mutableStateOf<DevLog?>(null) }
     val clipboardManager = LocalClipboardManager.current
 
-    Column(modifier = modifier.background(sdkBackground)) {
+    Column(modifier = modifier.background(sdkBackground).padding(16.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -73,6 +77,7 @@ fun CrashScreen(modifier: Modifier = Modifier) {
         }
 
         HorizontalDivider(color = sdkSurfaceVariant, thickness = 0.5.dp)
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (crashes.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

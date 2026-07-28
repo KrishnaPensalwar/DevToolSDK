@@ -12,12 +12,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.network.AnalyticsCalculator
+import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.network.EndpointStats
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun AnalyticsScreen(modifier: Modifier = Modifier) {
+fun AnalyticsScreen(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     val repository = LoggerManager.getNetworkRepository()
     val calls by repository.calls.collectAsState()
     val stats = remember(calls) { AnalyticsCalculator.calculate(calls) }
@@ -33,9 +37,9 @@ fun AnalyticsScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(modifier = modifier) {
+    Column(modifier = modifier.padding(16.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             SortType.values().forEach { type ->
