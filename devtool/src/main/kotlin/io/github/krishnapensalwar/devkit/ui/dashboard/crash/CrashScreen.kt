@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurfaceVariant
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurfaceVariant
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,6 +50,8 @@ fun CrashScreen(
     val crashes = allLogs.filter { it.level == LogLevel.CRASH }
     var selectedCrash by remember { mutableStateOf<DevLog?>(null) }
     val clipboardManager = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
+    val showClearCrashesDialog = remember { mutableStateOf(false) }
 
     Column(modifier = modifier.background(sdkBackground).padding(16.dp)) {
         Row(
@@ -55,7 +59,7 @@ fun CrashScreen(
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
@@ -69,6 +73,65 @@ fun CrashScreen(
                     color = sdkOnSurfaceVariant
                 )
             }
+
+            if (crashes.isNotEmpty()) {
+                IconButton(
+                    onClick = { showClearCrashesDialog.value = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(sdkSurface)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete All Crashes",
+                        tint = colorStatusError,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+
+        if (showClearCrashesDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showClearCrashesDialog.value = false },
+                title = {
+                    Text(
+                        text = "Delete All Crashes",
+                        fontWeight = FontWeight.Bold,
+                        color = sdkOnSurface
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Are you sure you want to delete all recorded crash events? This action cannot be undone.",
+                        color = sdkOnSurfaceVariant
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                repository.clearAll()
+                            }
+                            showClearCrashesDialog.value = false
+                        }
+                    ) {
+                        Text("Delete", color = colorStatusError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showClearCrashesDialog.value = false }
+                    ) {
+                        Text("Cancel", color = sdkOnSurfaceVariant)
+                    }
+                },
+                containerColor = sdkSurface,
+                textContentColor = sdkOnSurfaceVariant,
+                titleContentColor = sdkOnSurface,
+                shape = RoundedCornerShape(24.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))

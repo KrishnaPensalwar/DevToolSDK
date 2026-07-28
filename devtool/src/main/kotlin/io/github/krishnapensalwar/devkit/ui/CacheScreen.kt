@@ -24,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -99,7 +98,6 @@ fun CacheScreen(
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = "Cached Responses",
-                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = sdkOnSurface
                     )
@@ -109,7 +107,7 @@ fun CacheScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(top = paddingValues.calculateTopPadding())
                     .padding(16.dp)
             ) {
                 if (cachedResponses.isEmpty()) {

@@ -40,9 +40,7 @@ fun RequestContent(
             )
         }
 
-        CopyableCard(title = "HEADERS", onCopy = {
-            clipboardManager.setText(AnnotatedString(formatMap(call.requestHeaders)))
-        }) {
+        CopyableCard(title = "HEADERS", expandedByDefault = false,) {
             SearchableHeaderList(headers = call.requestHeaders)
         }
 
@@ -66,9 +64,7 @@ fun ResponseContent(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionLabel(text = "RESPONSE")
 
-        CopyableCard(title = "HEADERS", expandedByDefault = false, onCopy = {
-            clipboardManager.setText(AnnotatedString(formatMap(call.responseHeaders)))
-        }) {
+        CopyableCard(title = "HEADERS", expandedByDefault = false, ) {
             SearchableHeaderList(headers = call.responseHeaders)
         }
 
@@ -78,8 +74,4 @@ fun ResponseContent(
             SearchableBody(body = call.responseBody, onImageClick = onImageClick)
         }
     }
-}
-
-private fun formatMap(map: Map<String, String>): String = buildString {
-    map.forEach { (k, v) -> appendLine("$k: $v") }
 }

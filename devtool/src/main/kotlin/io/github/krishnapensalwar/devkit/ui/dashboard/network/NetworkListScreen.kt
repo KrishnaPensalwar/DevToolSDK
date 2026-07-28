@@ -20,9 +20,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -31,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -83,21 +91,38 @@ fun NetworkListScreen(
     val scope = rememberCoroutineScope()
 
     var searchQuery by remember { mutableStateOf("") }
-    var selectedMethod by remember { mutableStateOf<String?>(null) }
-    val filters = listOf("ALL", "GET", "POST", "PUT", "DELETE", "PATCH")
+    var selectedMethods by remember { mutableStateOf(setOf<String>()) }
+    var selectedStatuses by remember { mutableStateOf(setOf<String>()) }
+
+    var isMethodDropdownExpanded by remember { mutableStateOf(false) }
+    var isStatusDropdownExpanded by remember { mutableStateOf(false) }
+    var showClearNetworkDialog by remember { mutableStateOf(false) }
+
+    val existingMethods = remember(calls) {
+        val methods = calls.map { it.method.uppercase() }.distinct()
+        if (methods.isEmpty()) listOf("GET", "POST", "PUT", "DELETE", "PATCH") else methods.sorted()
+    }
 
     val filteredCalls = calls.filter { call ->
         val matchesQuery = searchQuery.isEmpty() ||
                 call.url.contains(searchQuery, ignoreCase = true) ||
                 call.endpoint.contains(searchQuery, ignoreCase = true)
-        val matchesMethod = selectedMethod == null || selectedMethod == "ALL" ||
-                call.method.equals(selectedMethod, ignoreCase = true)
-        matchesQuery && matchesMethod
+        val matchesMethod = selectedMethods.isEmpty() ||
+                selectedMethods.contains(call.method.uppercase())
+        val matchesStatus = selectedStatuses.isEmpty() || selectedStatuses.any { status ->
+            when (status) {
+                "Success" -> call.statusCode in 200..299
+                "Failed" -> call.statusCode in 400..599 || call.exception != null
+                "Pending" -> call.statusCode <= 0 && call.exception == null
+                else -> true
+            }
+        }
+        matchesQuery && matchesMethod && matchesStatus
     }
 
     Column(modifier = modifier.background(sdkBackground)) {
 
-        NetworkSummaryBadge(calls = calls)
+//        NetworkSummaryBadge(calls = calls)
 
         // Sticky filter header
         Column(
@@ -119,7 +144,7 @@ fun NetworkListScreen(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(
-                    onClick = { scope.launch { repository.clearAll() } },
+                    onClick = { showClearNetworkDialog = true },
                     modifier = Modifier
                         .padding(start = 12.dp)
                         .size(44.dp)
@@ -127,7 +152,7 @@ fun NetworkListScreen(
                         .background(sdkSurface)
                 ) {
                     Icon(
-                        Icons.Default.Clear,
+                        Icons.Default.Delete,
                         contentDescription = "Clear All",
                         tint = sdkOnSurfaceVariant,
                         modifier = Modifier.size(20.dp)
@@ -135,17 +160,71 @@ fun NetworkListScreen(
                 }
             }
 
-            LazyRow(
+            if (showClearNetworkDialog) {
+                AlertDialog(
+                    onDismissRequest = { showClearNetworkDialog = false },
+                    title = {
+                        Text(
+                            text = "Clear Network Logs",
+                            fontWeight = FontWeight.Bold,
+                            color = sdkOnSurface
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to clear all network activity logs? This action cannot be undone.",
+                            color = sdkOnSurfaceVariant
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    repository.clearAll()
+                                }
+                                showClearNetworkDialog = false
+                            }
+                        ) {
+                            Text("Clear", color = colorStatusError)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showClearNetworkDialog = false }
+                        ) {
+                            Text("Cancel", color = sdkOnSurfaceVariant)
+                        }
+                    },
+                    containerColor = sdkSurface,
+                    textContentColor = sdkOnSurfaceVariant,
+                    titleContentColor = sdkOnSurface,
+                    shape = RoundedCornerShape(24.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filters) { filter ->
-                    val isSelected = if (filter == "ALL") selectedMethod == null else selectedMethod == filter
+                // Method dropdown chip
+                Box {
+                    val hasMethodFilter = selectedMethods.isNotEmpty()
                     FilterChip(
-                        selected = isSelected,
-                        onClick = {
-                            selectedMethod = if (filter == "ALL") null else filter
+                        selected = hasMethodFilter,
+                        onClick = { isMethodDropdownExpanded = true },
+                        label = {
+                            Text(
+                                text = if (hasMethodFilter) "Method: ${selectedMethods.joinToString(", ")}" else "Method: All",
+                                fontSize = 14.sp
+                            )
                         },
-                        label = { Text(filter, fontSize = 10.sp) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = sdkSurfaceVariant,
                             selectedLabelColor = sdkPrimary,
@@ -155,6 +234,127 @@ fun NetworkListScreen(
                         border = null,
                         shape = RoundedCornerShape(10.dp)
                     )
+
+                    DropdownMenu(
+                        expanded = isMethodDropdownExpanded,
+                        onDismissRequest = { isMethodDropdownExpanded = false },
+                        modifier = Modifier.background(sdkSurface)
+                    ) {
+                        existingMethods.forEach { method ->
+                            val isChecked = selectedMethods.contains(method)
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        val targetColor = methodColor(method)
+                                        Checkbox(
+                                            checked = isChecked,
+                                            onCheckedChange = { checked ->
+                                                selectedMethods = if (checked) {
+                                                    selectedMethods + method
+                                                } else {
+                                                    selectedMethods - method
+                                                }
+                                            },
+                                            colors = CheckboxDefaults.colors(
+                                                checkedColor = targetColor,
+                                                checkmarkColor = sdkBackground
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = method, color = targetColor, fontWeight = FontWeight.Bold)
+                                    }
+                                },
+                                onClick = {
+                                    selectedMethods = if (isChecked) {
+                                        selectedMethods - method
+                                    } else {
+                                        selectedMethods + method
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Status dropdown chip
+                Box {
+                    val hasStatusFilter = selectedStatuses.isNotEmpty()
+                    FilterChip(
+                        selected = hasStatusFilter,
+                        onClick = { isStatusDropdownExpanded = true },
+                        label = {
+                            Text(
+                                text = if (hasStatusFilter) "Status: ${selectedStatuses.joinToString(", ")}" else "Status: All",
+                                fontSize = 14.sp
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.ArrowDropDown,
+                                contentDescription = "Dropdown",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = sdkSurfaceVariant,
+                            selectedLabelColor = sdkPrimary,
+                            containerColor = sdkSurface,
+                            labelColor = sdkOnSurfaceVariant
+                        ),
+                        border = null,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    DropdownMenu(
+                        expanded = isStatusDropdownExpanded,
+                        onDismissRequest = { isStatusDropdownExpanded = false },
+                        modifier = Modifier.background(sdkSurface)
+                    ) {
+                        listOf("Success", "Failed", "Pending").forEach { status ->
+                            val isChecked = selectedStatuses.contains(status)
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        val targetColor = when (status) {
+                                            "Success" -> colorStatusSuccess
+                                            "Failed" -> colorStatusError
+                                            "Pending" -> colorStatusWarning
+                                            else -> sdkOnSurface
+                                        }
+                                        Checkbox(
+                                            checked = isChecked,
+                                            onCheckedChange = { checked ->
+                                                selectedStatuses = if (checked) {
+                                                    selectedStatuses + status
+                                                } else {
+                                                    selectedStatuses - status
+                                                }
+                                            },
+                                            colors = CheckboxDefaults.colors(
+                                                checkedColor = targetColor,
+                                                checkmarkColor = sdkBackground
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = status, color = targetColor, fontWeight = FontWeight.Bold)
+                                    }
+                                },
+                                onClick = {
+                                    selectedStatuses = if (isChecked) {
+                                        selectedStatuses - status
+                                    } else {
+                                        selectedStatuses + status
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

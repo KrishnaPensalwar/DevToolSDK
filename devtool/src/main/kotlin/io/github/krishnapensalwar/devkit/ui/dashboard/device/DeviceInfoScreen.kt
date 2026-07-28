@@ -58,7 +58,7 @@ fun InfoSection(title: String, content: @Composable ColumnScope.() -> Unit) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = title.uppercase(),
-                fontSize = 11.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = sdkPrimary,
                 letterSpacing = 1.sp
@@ -75,7 +75,7 @@ fun DeviceInfoRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, fontSize = 13.sp, color = sdkOnSurfaceVariant)
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = sdkOnSurface)
+        Text(label, fontSize = 14.sp, color = sdkOnSurfaceVariant)
+        Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = sdkOnSurface)
     }
 }

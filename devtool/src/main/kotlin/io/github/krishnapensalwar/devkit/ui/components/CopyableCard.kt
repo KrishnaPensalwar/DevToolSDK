@@ -27,7 +27,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.*
 fun CopyableCard(
     title: String,
     expandedByDefault: Boolean = true,
-    onCopy: () -> Unit,
+    onCopy: (() -> Unit) ?= null,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -67,7 +67,9 @@ fun CopyableCard(
                 IconButton(
                     onClick = {
                         Log.d(TAG, "[CopyableCard] Copy content triggered for card: '$title'")
-                        onCopy()
+                        onCopy?.let {
+                            onCopy.invoke()
+                        }
                     },
                     modifier = Modifier.size(32.dp)
                 ) {

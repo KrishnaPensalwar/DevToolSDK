@@ -65,7 +65,7 @@ fun DashboardScreen() {
             when (tab) {
                 DashboardTab.NETWORK, DashboardTab.ANALYTICS -> DevTool.config.isNetworkMonitoringEnabled
                 DashboardTab.CRASHES -> DevTool.config.isCrashReportingEnabled
-                DashboardTab.PERFORMANCE -> DevTool.config.isPerformanceMonitoringEnabled
+//                DashboardTab.PERFORMANCE -> DevTool.config.isPerformanceMonitoringEnabled
                 else -> true
             }
         }
@@ -201,9 +201,9 @@ fun DashboardScreen() {
                     CrashScreen(navController, Modifier.fillMaxSize())
                 }
 
-                composable(DashboardTab.PERFORMANCE.name.lowercase()) {
-                    PerformanceScreen(navController, Modifier.fillMaxSize())
-                }
+//                composable(DashboardTab.PERFORMANCE.name.lowercase()) {
+//                    PerformanceScreen(navController, Modifier.fillMaxSize())
+//                }
 
                 composable(DashboardTab.STORAGE.name.lowercase()) {
                     StorageInspectorScreen(navController, Modifier.fillMaxSize())
@@ -282,7 +282,7 @@ enum class DashboardTab(val title: String, val icon: ImageVector) {
     NETWORK("Network", Icons.Default.Http),
     ANALYTICS("Analytics", Icons.Default.Analytics),
     CRASHES("Crashes", Icons.Default.BugReport),
-    PERFORMANCE("Performance", Icons.Default.Speed),
+//    PERFORMANCE("Performance", Icons.Default.Speed),
     STORAGE("Storage", Icons.Default.Storage),
     DEVICE("Device Info", Icons.Default.Devices)
 }

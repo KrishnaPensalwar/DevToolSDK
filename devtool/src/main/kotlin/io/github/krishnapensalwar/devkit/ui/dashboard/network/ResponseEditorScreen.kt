@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Save
@@ -75,7 +76,6 @@ fun ResponseEditorScreen(
 
                 Text(
                     text = "Response Editor",
-                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = sdkOnSurface
                 )
@@ -102,7 +102,7 @@ fun ResponseEditorScreen(
                     // Save Button
                     IconButton(
                         onClick = {
-                            android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string to DB save: $jsonStringState")
+                            Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string to DB save: $jsonStringState")
                             onSave(jsonStringState)
                             navController.pop()
                         },
@@ -112,7 +112,7 @@ fun ResponseEditorScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer)
                     ) {
                         Icon(
-                            Icons.Default.Save,
+                            Icons.Filled.Check,
                             contentDescription = "Save",
                             tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )

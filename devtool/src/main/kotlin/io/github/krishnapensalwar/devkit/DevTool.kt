@@ -31,9 +31,9 @@ object DevTool {
             CrashCollector.start()
         }
 
-        if (config.isPerformanceMonitoringEnabled) {
-            PerformanceCollector.start(context)
-        }
+//        if (config.isPerformanceMonitoringEnabled) {
+//            PerformanceCollector.start(context)
+//        }
 
         if (config.isFloatingButtonEnabled) {
             FloatingButtonManager.init(application)

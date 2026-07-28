@@ -91,19 +91,19 @@ fun NetworkDetailScreen(
                         color = sdkOnSurface
                     )
                     Row {
-                        IconButton(
-                            onClick = { /* Refresh */ },
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(sdkSurface)
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Refresh",
-                                tint = sdkOnSurface
-                            )
-                        }
+//                        IconButton(
+//                            onClick = { /* Refresh */ },
+//                            modifier = Modifier
+//                                .size(44.dp)
+//                                .clip(CircleShape)
+//                                .background(sdkSurface)
+//                        ) {
+//                            Icon(
+//                                Icons.Default.Refresh,
+//                                contentDescription = "Refresh",
+//                                tint = sdkOnSurface
+//                            )
+//                        }
                         Spacer(modifier = Modifier.width(8.dp))
                         IconButton(
                             onClick = {
@@ -127,7 +127,7 @@ fun NetworkDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(sdkSurface)
                         .padding(4.dp)
                 ) {

@@ -24,6 +24,10 @@ object LoggerManager {
         return repository ?: throw IllegalStateException("LoggerManager not initialized")
     }
 
+    suspend fun clearCrashes() {
+        repository?.clearAll()
+    }
+
     fun getNetworkRepository(): NetworkRepository {
         return networkRepository ?: throw IllegalStateException("LoggerManager not initialized")
     }

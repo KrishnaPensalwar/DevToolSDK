@@ -29,9 +29,10 @@ fun StorageInspectorScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Databases", "SharedPrefs")
+//    val tabs = listOf("Databases", "SharedPrefs")
+    val tabs = listOf( "SharedPrefs")
 
-    Column(modifier = modifier.background(sdkBackground).padding(16.dp)) {
+    Column(modifier = modifier.background(sdkBackground)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,14 +51,14 @@ fun StorageInspectorScreen(
                         labelColor = sdkOnSurfaceVariant
                     ),
                     border = null,
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
         }
 
         when (selectedTab) {
-            0 -> DatabasesSection()
-            1 -> SharedPreferencesSection()
+            0 -> SharedPreferencesSection()
         }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.krishnapensalwar.devkit
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import io.github.krishnapensalwar.devkit.ui.navigation.navigateTo
@@ -41,19 +43,42 @@ fun DevToolOverviewScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "SDK Feature Status",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = sdkPrimary
-                )
-                HorizontalDivider(color = sdkSurfaceVariant, thickness = 0.5.dp)
-                FeatureStatusRow(name = "Network Monitoring", enabled = DevTool.config.isNetworkMonitoringEnabled)
-                FeatureStatusRow(name = "Crash Reporting", enabled = DevTool.config.isCrashReportingEnabled)
-                FeatureStatusRow(name = "Performance Tracking", enabled = DevTool.config.isPerformanceMonitoringEnabled)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                    ) {
+                        Text(
+                            text = "SDK Feature Status",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = sdkPrimary,
+
+                            )
+                        Spacer(Modifier.height(12.dp))
+                        FeatureStatusRow(
+                            name = "Network Monitoring",
+                            enabled = DevTool.config.isNetworkMonitoringEnabled
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        FeatureStatusRow(
+                            name = "Crash Reporting",
+                            enabled = DevTool.config.isCrashReportingEnabled
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        //   FeatureStatusRow(name = "Performance Tracking", enabled = DevTool.config.isPerformanceMonitoringEnabled)
+
+                    }
+
+                }
+
             }
         }
 
@@ -63,7 +88,7 @@ fun DevToolOverviewScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-            )
+                )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -75,9 +100,10 @@ fun DevToolOverviewScreen(
                             Text(
                                 text = "Mock Network Traffic",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = if (isMockingEnabled.value) "Mocking is currently enabled" else "Mocking is currently disabled",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -107,11 +133,55 @@ fun DevToolOverviewScreen(
                 Text("View Cached Responses")
             }
 
+            val showClearCacheDialog = remember { mutableStateOf(false) }
+
             OutlinedButton(
-                onClick = { scope.launch { DevToolSdk.clearCache() } },
+                onClick = { showClearCacheDialog.value = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Clear Cache")
+            }
+
+            if (showClearCacheDialog.value) {
+                AlertDialog(
+                    onDismissRequest = { showClearCacheDialog.value = false },
+                    title = {
+                        Text(
+                            text = "Clear Cache",
+                            fontWeight = FontWeight.Bold,
+                            color = sdkOnSurface
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Are you sure you want to clear all cached responses? This action cannot be undone.",
+                            color = sdkOnSurfaceVariant
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    DevToolSdk.clearCache()
+                                }
+                                showClearCacheDialog.value = false
+                            }
+                        ) {
+                            Text("Clear", color = colorStatusError)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showClearCacheDialog.value = false }
+                        ) {
+                            Text("Cancel", color = sdkOnSurfaceVariant)
+                        }
+                    },
+                    containerColor = sdkSurface,
+                    textContentColor = sdkOnSurfaceVariant,
+                    titleContentColor = sdkOnSurface,
+                    shape = RoundedCornerShape(24.dp)
+                )
             }
         }
     }
@@ -124,7 +194,8 @@ fun FeatureStatusRow(name: String, enabled: Boolean) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = name, style = MaterialTheme.typography.bodyMedium, color = sdkOnSurface)
+        Text(text = name, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = if (enabled) "Active" else "Inactive",
             style = MaterialTheme.typography.bodyMedium,

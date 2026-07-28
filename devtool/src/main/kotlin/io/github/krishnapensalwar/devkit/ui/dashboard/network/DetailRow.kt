@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -24,7 +25,7 @@ fun DetailRow(
 
         Text(
             text = label.uppercase(),
-            fontSize = 10.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(80.dp)
@@ -46,4 +47,10 @@ fun DetailRow(
             )
         }
     }
+}
+
+@Preview
+@Composable
+fun prev(){
+    DetailRow("title","description")
 }
