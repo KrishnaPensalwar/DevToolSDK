@@ -1,7 +1,7 @@
 package io.github.krishnapensalwar.devkit.network.interceptor
 
 import android.util.Log
-import io.github.krishnapensalwar.devkit.core.DevTool
+import io.github.krishnapensalwar.devkit.DevTool
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.network.parser.NetworkParser
 import io.github.krishnapensalwar.devkit.mock.MockManager

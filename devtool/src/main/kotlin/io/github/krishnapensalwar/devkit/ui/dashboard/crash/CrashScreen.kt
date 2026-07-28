@@ -55,13 +55,8 @@ fun CrashScreen(
                 .fillMaxWidth()
                 .padding(bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.End
         ) {
-            Text(
-                text = "Crash Reports",
-                style = MaterialTheme.typography.headlineMedium,
-                color = sdkOnSurface
-            )
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
@@ -76,7 +71,6 @@ fun CrashScreen(
             }
         }
 
-        HorizontalDivider(color = sdkSurfaceVariant, thickness = 0.5.dp)
         Spacer(modifier = Modifier.height(8.dp))
 
         if (crashes.isEmpty()) {
