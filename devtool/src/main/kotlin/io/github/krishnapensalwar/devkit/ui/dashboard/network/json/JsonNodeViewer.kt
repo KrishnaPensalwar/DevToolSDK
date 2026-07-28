@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -60,27 +61,53 @@ fun JsonNodeViewer(
         }
 
         else -> {
-
             val valueString = value.toString()
+            val isString = value is String || value is CharSequence
+            val isNumber = value is Number
+            val isBoolean = value is Boolean
+            val isNull = value == null || value == JSONObject.NULL || valueString == "null"
 
-            val keyMatches =
-                key.contains(searchQuery, ignoreCase = true)
+            val formattedKey = if (key.startsWith("[") && key.endsWith("]")) {
+                "$key: "
+            } else {
+                "\"$key\": "
+            }
 
-            val valueMatches =
-                valueString.contains(searchQuery, ignoreCase = true)
+            val formattedValue = when {
+                isNull -> "null"
+                isString -> "\"$valueString\""
+                else -> valueString
+            }
+
+            val keyMatches = key.contains(searchQuery, ignoreCase = true)
+            val valueMatches = formattedValue.contains(searchQuery, ignoreCase = true)
 
             val isImage = remember(valueString) {
                 isImageUrl(valueString)
             }
 
-            if (
-                searchQuery.isBlank() ||
-                keyMatches ||
-                valueMatches
-            ) {
+            val keyColor = if (key.startsWith("[") && key.endsWith("]")) {
+                Color(0xFF808080)
+            } else {
+                Color(0xFF9CDCFE)
+            }
 
+            val valueColor = when {
+                isNull -> Color(0xFF808080)
+                isString -> {
+                    if (isImage) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        Color(0xFFCE9178)
+                    }
+                }
+                isNumber -> Color(0xFFB5CEA8)
+                isBoolean -> Color(0xFF569CD6)
+                else -> MaterialTheme.colorScheme.onSurface
+            }
+
+            if (searchQuery.isBlank() || keyMatches || valueMatches) {
                 Column {
-
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -89,17 +116,16 @@ fun JsonNodeViewer(
                             }
                             .padding(vertical = 2.dp)
                     ) {
-
-                        Column{
+                        Column {
                             HighlightedText(
-                                text = "$key: ",
+                                text = formattedKey,
                                 query = searchQuery,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.primary
+                                color = keyColor
                             )
-                            if(isImage){
+                            if (isImage) {
                                 Icon(
                                     Icons.Default.RemoveRedEye,
                                     contentDescription = null,
@@ -117,22 +143,14 @@ fun JsonNodeViewer(
                             }
                         }
                         HighlightedText(
-                            text = valueString,
+                            text = formattedValue,
                             query = searchQuery,
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace,
-                            color = if (isImage)
-                                MaterialTheme.colorScheme.secondary
-                            else
-                                MaterialTheme.colorScheme.onSurface,
-                            modifier =
-
-                                    Modifier
+                            color = valueColor,
+                            modifier = Modifier
                         )
-
-
                     }
-
                 }
             }
         }
