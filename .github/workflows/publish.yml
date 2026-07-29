@@ -9,6 +9,7 @@ jobs:
   publish:
     name: Build and Publish
     runs-on: ubuntu-latest
+    environment: DevtoolSDK
     permissions:
       contents: write
     steps:
