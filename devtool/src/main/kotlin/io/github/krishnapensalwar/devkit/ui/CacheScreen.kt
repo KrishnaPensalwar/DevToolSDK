@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.DevToolSdk
-import io.github.krishnapensalwar.devkit.database.CachedResponseEntity
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import io.github.krishnapensalwar.devkit.ui.navigation.navigateTo
 import io.github.krishnapensalwar.devkit.ui.navigation.pop
@@ -54,7 +54,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
 import kotlinx.coroutines.launch
 
 @Composable
-fun CacheScreen(
+internal fun CacheScreen(
     navController: NavController
 ) {
     val scope = rememberCoroutineScope()

@@ -41,7 +41,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun CrashScreen(
+internal fun CrashScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -217,7 +217,7 @@ fun CrashScreen(
 }
 
 @Composable
-fun CrashItem(crash: DevLog, onClick: () -> Unit) {
+internal fun CrashItem(crash: DevLog, onClick: () -> Unit) {
     val date = SimpleDateFormat("MMM dd, HH:mm:ss", Locale.getDefault()).format(Date(crash.timestamp))
 
     Row(

@@ -10,7 +10,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.DevToolTheme
 /**
  * Main Activity hosting the DevTool SDK Jetpack Compose dashboard interface.
  */
-class DashboardActivity : ComponentActivity() {
+internal class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

@@ -6,7 +6,6 @@ import io.github.krishnapensalwar.devkit.core.collector.CrashCollector
 import io.github.krishnapensalwar.devkit.core.collector.PerformanceCollector
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.ui.floating.FloatingButtonManager
-import io.github.krishnapensalwar.devkit.core.DevtoolConfig
 
 /**
  * Main entry point for the DevTool SDK.

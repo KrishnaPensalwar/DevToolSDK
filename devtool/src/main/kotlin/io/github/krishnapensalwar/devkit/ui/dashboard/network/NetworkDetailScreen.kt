@@ -37,11 +37,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-enum class DetailTab { OVERVIEW, REQUEST, RESPONSE }
+internal enum class DetailTab { OVERVIEW, REQUEST, RESPONSE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NetworkDetailScreen(
+internal fun NetworkDetailScreen(
     call: NetworkCall,
     navController: NavController,
     modifier: Modifier = Modifier
@@ -279,7 +279,7 @@ fun NetworkDetailScreen(
     }
 }
 
-fun formatFullLog(call: NetworkCall): String = buildString {
+internal fun formatFullLog(call: NetworkCall): String = buildString {
     appendLine("URL: ${call.url}")
     appendLine("Method: ${call.method}")
     appendLine("Status: ${call.statusCode}")

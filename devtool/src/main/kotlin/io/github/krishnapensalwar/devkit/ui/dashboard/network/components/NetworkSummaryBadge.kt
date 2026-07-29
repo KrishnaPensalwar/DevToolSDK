@@ -28,7 +28,7 @@ private data class SummaryItem(
 )
 
 @Composable
-fun NetworkSummaryBadge(calls: List<NetworkCall>) {
+internal fun NetworkSummaryBadge(calls: List<NetworkCall>) {
     val items = remember(calls) {
         val total = calls.size
         val success = calls.count { it.success }

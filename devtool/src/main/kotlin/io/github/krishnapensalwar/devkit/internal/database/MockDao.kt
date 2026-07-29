@@ -1,4 +1,4 @@
-package io.github.krishnapensalwar.devkit.database
+package io.github.krishnapensalwar.devkit.internal.database
 
 import androidx.room.Dao
 import androidx.room.Insert

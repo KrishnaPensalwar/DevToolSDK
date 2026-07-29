@@ -22,7 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun PerformanceScreen(
+internal fun PerformanceScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -59,7 +59,7 @@ fun PerformanceScreen(
 }
 
 @Composable
-fun MemoryChart(logs: List<DevLog>, modifier: Modifier = Modifier) {
+internal fun MemoryChart(logs: List<DevLog>, modifier: Modifier = Modifier) {
     val primaryColor = MaterialTheme.colorScheme.primary
     
     // Simple line chart representation
@@ -91,7 +91,7 @@ fun MemoryChart(logs: List<DevLog>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PerfItem(log: DevLog) {
+internal fun PerfItem(log: DevLog) {
     val date = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(log.timestamp))
     
     Card(

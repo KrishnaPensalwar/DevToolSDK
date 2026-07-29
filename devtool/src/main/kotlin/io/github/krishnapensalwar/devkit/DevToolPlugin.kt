@@ -28,7 +28,7 @@ import io.ktor.client.statement.bodyAsText
 /**
  * Configuration options for [DevToolPlugin].
  */
-class DevToolConfig {
+class KtorDevToolConfig {
     /** When true, matched or cached mock responses are returned without making a live network call. */
     var mockingEnabled: Boolean = true
 
@@ -82,7 +82,7 @@ data class MockResponse(
  */
 val DevToolPlugin = createClientPlugin(
     name = "DevToolPlugin",
-    createConfiguration = ::DevToolConfig
+    createConfiguration = ::KtorDevToolConfig
 ) {
     // Cache config locally as recommended by Ktor; also avoids implicit-receiver
     // resolution issues inside the `on(Send)` hook below.

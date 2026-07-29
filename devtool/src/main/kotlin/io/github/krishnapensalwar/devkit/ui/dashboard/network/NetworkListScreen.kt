@@ -82,7 +82,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NetworkListScreen(
+internal fun NetworkListScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -380,7 +380,7 @@ fun NetworkListScreen(
 }
 
 @Composable
-fun NetworkCallItem(
+internal fun NetworkCallItem(
     call: NetworkCall,
     onClick: () -> Unit
 ) {
@@ -482,7 +482,7 @@ fun NetworkCallItem(
     }
 }
 
-fun methodColor(method: String): Color = when (method.uppercase()) {
+internal fun methodColor(method: String): Color = when (method.uppercase()) {
     "GET"    -> methodGet
     "POST"   -> methodPost
     "PUT"    -> methodPut

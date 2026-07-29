@@ -7,9 +7,9 @@ import io.ktor.client.request.HttpRequestBuilder
 /**
  * Installs the DevTool plugin on an [HttpClientConfig].
  *
- * @param configure Lambda block to configure [DevToolConfig] options such as mock resolvers or request modifiers.
+ * @param configure Lambda block to configure [KtorDevToolConfig] options such as mock resolvers or request modifiers.
  */
-fun HttpClientConfig<*>.withDevTool(configure: DevToolConfig.() -> Unit = {}) {
+fun HttpClientConfig<*>.withDevTool(configure: KtorDevToolConfig.() -> Unit = {}) {
     install(DevToolPlugin, configure)
 }
 

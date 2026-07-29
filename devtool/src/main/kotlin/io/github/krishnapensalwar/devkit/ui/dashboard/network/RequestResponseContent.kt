@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun RequestContent(
+internal fun RequestContent(
     call: NetworkCall,
     onImageClick: (String) -> Unit
 ) {
@@ -53,7 +53,7 @@ fun RequestContent(
 }
 
 @Composable
-fun ResponseContent(
+internal fun ResponseContent(
     call: NetworkCall,
     onImageClick: (String) -> Unit
 ) {

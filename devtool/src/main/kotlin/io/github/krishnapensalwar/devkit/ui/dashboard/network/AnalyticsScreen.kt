@@ -18,7 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun AnalyticsScreen(
+internal fun AnalyticsScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -60,7 +60,7 @@ fun AnalyticsScreen(
 }
 
 @Composable
-fun EndpointStatsItem(stats: EndpointStats) {
+internal fun EndpointStatsItem(stats: EndpointStats) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -99,14 +99,14 @@ fun EndpointStatsItem(stats: EndpointStats) {
 }
 
 @Composable
-fun StatColumn(label: String, value: String) {
+internal fun StatColumn(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 
-enum class SortType(val label: String) {
+internal enum class SortType(val label: String) {
     MOST_CALLED("Calls"),
     SLOWEST("Slow"),
     LARGEST("Size"),

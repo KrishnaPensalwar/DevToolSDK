@@ -19,7 +19,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.*
 import java.util.Locale
 
 @Composable
-fun OverviewContent(
+internal fun OverviewContent(
     call: NetworkCall
 ) {
     Column(

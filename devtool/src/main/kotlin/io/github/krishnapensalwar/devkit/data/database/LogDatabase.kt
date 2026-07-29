@@ -1,11 +1,13 @@
 package io.github.krishnapensalwar.devkit.data.database
 
 import android.content.Context
+import androidx.annotation.RestrictTo
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Database(entities = [LogEntity::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
 internal abstract class LogDatabase : RoomDatabase() {

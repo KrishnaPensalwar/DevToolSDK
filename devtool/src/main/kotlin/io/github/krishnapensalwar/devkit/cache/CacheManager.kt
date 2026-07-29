@@ -2,9 +2,9 @@ package io.github.krishnapensalwar.devkit.cache
 
 import androidx.room.RoomDatabase
 import io.github.krishnapensalwar.devkit.MockResponse
-import io.github.krishnapensalwar.devkit.database.CachedResponseDao
-import io.github.krishnapensalwar.devkit.database.CachedResponseEntity
-import io.github.krishnapensalwar.devkit.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseDao
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpStatusCode

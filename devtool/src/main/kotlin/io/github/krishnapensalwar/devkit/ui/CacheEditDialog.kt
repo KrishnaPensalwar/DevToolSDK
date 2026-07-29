@@ -10,10 +10,10 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.github.krishnapensalwar.devkit.database.CachedResponseEntity
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 
 @Composable
-fun CacheEditDialog(
+internal fun CacheEditDialog(
     cachedResponse: CachedResponseEntity,
     onDismiss: () -> Unit,
     onSave: (newBody: String) -> Unit

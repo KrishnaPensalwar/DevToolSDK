@@ -5,7 +5,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import io.github.krishnapensalwar.devkit.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 import io.github.krishnapensalwar.devkit.mock.MockManager
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -25,7 +26,7 @@ private val MOCKING_ENABLED_KEY = booleanPreferencesKey("mocking_enabled")
 /**
  * Core manager object for DevTool SDK operations, database access, and mocking configuration.
  */
-object DevToolSdk {
+internal object DevToolSdk {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -42,9 +43,9 @@ object DevToolSdk {
         clientRef = client
     }
 
-    private var currentConfig: DevToolConfig? = null
+    private var currentConfig: KtorDevToolConfig? = null
 
-    internal fun bind(config: DevToolConfig, client: HttpClient) {
+    internal fun bind(config: KtorDevToolConfig, client: HttpClient) {
         // Store config for later state updates
         currentConfig = config
         // No‑op for backward compatibility
@@ -122,7 +123,7 @@ object DevToolSdk {
      *
      * @return List of [CachedResponseEntity] instances.
      */
-    suspend fun getAllCachedResponses(): List<io.github.krishnapensalwar.devkit.database.CachedResponseEntity> =
+    suspend fun getAllCachedResponses(): List<CachedResponseEntity> =
         database?.cachedResponseDao()?.getAll() ?: emptyList()
 
     /**
@@ -146,7 +147,7 @@ object DevToolSdk {
         val existing = dao.get(url, method)
         if (existing == null) {
             android.util.Log.w("NetworkInterceptor", "[DevToolSdk] No existing cached response found for URL=$url, Method=$method. Inserting new entry.")
-            val newEntity = io.github.krishnapensalwar.devkit.database.CachedResponseEntity(
+            val newEntity = CachedResponseEntity(
                 url = url,
                 method = method,
                 status = 200,

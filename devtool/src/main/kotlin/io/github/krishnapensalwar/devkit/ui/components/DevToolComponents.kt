@@ -28,7 +28,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.sdkPrimary
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
 
 @Composable
-fun DevToolTopBar(
+internal fun DevToolTopBar(
     title: String,
     modifier: Modifier = Modifier,
     actions: @Composable RowScope.() -> Unit = {}
@@ -61,7 +61,7 @@ fun DevToolTopBar(
 }
 
 @Composable
-fun DevToolIconButton(
+internal fun DevToolIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
@@ -79,7 +79,7 @@ fun DevToolIconButton(
 }
 
 @Composable
-fun DevToolSearchBar(
+internal fun DevToolSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
