@@ -34,6 +34,14 @@ jobs:
       - name: Run Tests
         run: ./gradlew :devtool:testDebugUnitTest
 
+      - name: Verify Gradle properties
+        run: |
+          echo "Key length: ${#ORG_GRADLE_PROJECT_signingInMemoryKey}"
+          echo "Password length: ${#ORG_GRADLE_PROJECT_signingInMemoryKeyPassword}"
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_PASSWORD }}
+
       - name: Publish to Maven Central
         run: ./gradlew :devtool:publishAllPublicationsToMavenCentralRepository --no-configuration-cache
         env:
