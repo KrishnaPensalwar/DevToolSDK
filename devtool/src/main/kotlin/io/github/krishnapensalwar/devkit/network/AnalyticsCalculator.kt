@@ -2,7 +2,7 @@ package io.github.krishnapensalwar.devkit.network
 
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 
-data class EndpointStats(
+internal data class EndpointStats(
     val endpoint: String,
     val method: String,
     val totalCalls: Int,
@@ -14,7 +14,7 @@ data class EndpointStats(
     val lastCalled: Long
 )
 
-object AnalyticsCalculator {
+internal object AnalyticsCalculator {
     fun calculate(calls: List<NetworkCall>): List<EndpointStats> {
         return calls.groupBy { "${it.method} ${it.endpoint}" }
             .map { (key, group) ->

@@ -7,7 +7,7 @@ import androidx.room.Query
 
 /** DAO for cached network responses */
 @Dao
-interface CachedResponseDao {
+internal interface CachedResponseDao {
     @Query("SELECT * FROM cached_responses WHERE url = :url AND method = :method LIMIT 1")
     suspend fun get(url: String, method: String): CachedResponseEntity?
 

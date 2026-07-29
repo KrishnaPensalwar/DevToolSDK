@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-object CrashCollector : Thread.UncaughtExceptionHandler {
+internal object CrashCollector : Thread.UncaughtExceptionHandler {
     private var defaultHandler: Thread.UncaughtExceptionHandler? = null
     private val scope = CoroutineScope(Dispatchers.IO)
 

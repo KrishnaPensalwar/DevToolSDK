@@ -9,7 +9,7 @@ import okio.Buffer
 import java.io.IOException
 import java.nio.charset.Charset
 
-object NetworkParser {
+internal object NetworkParser {
     private const val TAG = "NetworkInterceptor"
 
     fun parseRequest(request: Request, sensitiveHeaders: Set<String> = emptySet()): NetworkCall {

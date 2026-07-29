@@ -8,14 +8,27 @@ import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.ui.floating.FloatingButtonManager
 import io.github.krishnapensalwar.devkit.core.DevtoolConfig
 
+/**
+ * Main entry point for the DevTool SDK.
+ *
+ * Provides single-call initialization for network inspection, logging, crash reporting,
+ * database/storage inspection, and API mocking.
+ */
 object DevTool {
+    /**
+     * Active configuration for the DevTool SDK.
+     */
     var config: DevtoolConfig = DevtoolConfig()
         private set
 
     /**
      * Single entry point to initialize the DevTool SDK.
-     * Initializes Logging, Crash Reporting, Performance Monitoring, 
-     * Network Mocking, and Database systems.
+     *
+     * Initializes logging, crash reporting, network mocking, and storage inspection.
+     * Call once from [Application.onCreate] or an Activity context.
+     *
+     * @param context Application or Activity context used for initialization.
+     * @param config Optional configuration settings to customize SDK features.
      */
     fun init(context: Context, config: DevtoolConfig = DevtoolConfig()) {
         this.config = config

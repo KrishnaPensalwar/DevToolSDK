@@ -7,7 +7,7 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface NetworkDao {
+internal interface NetworkDao {
     @Query("SELECT * FROM network_logs ORDER BY timestamp DESC")
     fun getAllNetworkLogs(): Flow<List<NetworkEntity>>
 

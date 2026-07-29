@@ -5,7 +5,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import io.github.krishnapensalwar.devkit.ui.dashboard.DashboardTab
 
-sealed interface Destination {
+internal sealed interface Destination {
     data class Tab(val tab: DashboardTab) : Destination
     object CacheList : Destination
     data class ResponseEditor(
@@ -16,7 +16,7 @@ sealed interface Destination {
     data class NetworkDetail(val callId: Long) : Destination
 }
 
-fun NavController.navigateTo(destination: Destination) {
+internal fun NavController.navigateTo(destination: Destination) {
     when (destination) {
         is Destination.Tab -> {
 
@@ -42,6 +42,6 @@ fun NavController.navigateTo(destination: Destination) {
     }
 }
 
-fun NavController.pop() {
+internal fun NavController.pop() {
     popBackStack()
 }

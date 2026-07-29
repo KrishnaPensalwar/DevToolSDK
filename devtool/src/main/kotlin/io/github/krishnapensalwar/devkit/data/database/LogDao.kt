@@ -6,7 +6,7 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface LogDao {
+internal interface LogDao {
     @Query("SELECT * FROM logs ORDER BY timestamp DESC")
     fun getAllLogs(): Flow<List<LogEntity>>
 

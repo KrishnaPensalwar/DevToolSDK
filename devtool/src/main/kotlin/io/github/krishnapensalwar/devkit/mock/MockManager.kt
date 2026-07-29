@@ -21,7 +21,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.Protocol
 import org.json.JSONObject
 
-object MockManager {
+internal object MockManager {
     private lateinit var db: DevToolDatabase
     private var customResolver: ((HttpRequestBuilder) -> MockResponse?)? = null
     private var mockingEnabled: Boolean = true

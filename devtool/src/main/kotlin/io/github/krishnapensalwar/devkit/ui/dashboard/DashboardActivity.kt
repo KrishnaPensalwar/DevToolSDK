@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import io.github.krishnapensalwar.devkit.ui.theme.DevToolTheme
 
+/**
+ * Main Activity hosting the DevTool SDK Jetpack Compose dashboard interface.
+ */
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -18,6 +21,12 @@ class DashboardActivity : ComponentActivity() {
     }
 
     companion object {
+        /**
+         * Creates an [Intent] to launch the [DashboardActivity].
+         *
+         * @param context Host application or component context.
+         * @return Intent configured to open the DevTool dashboard.
+         */
         fun newIntent(context: Context): Intent {
             return Intent(context, DashboardActivity::class.java)
         }

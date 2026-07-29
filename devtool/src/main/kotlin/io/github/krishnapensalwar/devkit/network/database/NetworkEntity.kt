@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "network_calls")
-data class NetworkEntity(
+internal data class NetworkEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val url: String,
     val endpoint: String,

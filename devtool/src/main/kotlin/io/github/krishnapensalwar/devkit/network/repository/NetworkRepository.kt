@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-class NetworkRepository(private val networkDao: NetworkDao) {
+internal class NetworkRepository(private val networkDao: NetworkDao) {
     private val _calls = MutableStateFlow<List<NetworkCall>>(emptyList())
     val calls: StateFlow<List<NetworkCall>> = _calls.asStateFlow()
 

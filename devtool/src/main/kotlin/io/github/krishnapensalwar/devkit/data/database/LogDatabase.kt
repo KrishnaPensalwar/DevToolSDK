@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 
 @Database(entities = [LogEntity::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class)
-abstract class LogDatabase : RoomDatabase() {
+internal abstract class LogDatabase : RoomDatabase() {
     abstract fun logDao(): LogDao
 
     companion object {

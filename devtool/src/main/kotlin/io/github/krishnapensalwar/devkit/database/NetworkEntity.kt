@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 import java.util.Date
 
 @Entity(tableName = "network_logs")
-data class NetworkEntity(
+internal data class NetworkEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val url: String,
     val method: String,

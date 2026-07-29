@@ -14,7 +14,7 @@ import androidx.appcompat.view.ContextThemeWrapper
 import io.github.krishnapensalwar.devkit.ui.dashboard.DashboardActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
-object FloatingButtonManager {
+internal object FloatingButtonManager {
     private var isInitialized = false
 
     fun init(application: Application) {

@@ -2,7 +2,7 @@ package io.github.krishnapensalwar.devkit.network
 
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 
-object CurlGenerator {
+internal object CurlGenerator {
     fun generateCurl(call: NetworkCall): String {
         return buildString {
             append("curl -X ${call.method} \\\n")

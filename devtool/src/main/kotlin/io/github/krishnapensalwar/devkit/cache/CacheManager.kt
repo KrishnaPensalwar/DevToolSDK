@@ -16,7 +16,7 @@ import org.json.JSONObject
 /**
  * Singleton responsible for interacting with the cached_responses table.
  */
-object CacheManager {
+internal object CacheManager {
     private lateinit var dao: CachedResponseDao
 
     fun init(database: RoomDatabase) {

@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * Displays a switch that enables or disables mocking globally and displays config status.
  */
 @Composable
-fun DevToolOverviewScreen(
+internal fun DevToolOverviewScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
@@ -188,7 +188,7 @@ fun DevToolOverviewScreen(
 }
 
 @Composable
-fun FeatureStatusRow(name: String, enabled: Boolean) {
+internal fun FeatureStatusRow(name: String, enabled: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

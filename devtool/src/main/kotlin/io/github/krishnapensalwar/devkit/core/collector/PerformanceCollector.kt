@@ -11,7 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-object PerformanceCollector {
+internal object PerformanceCollector {
     private var job: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO)
 

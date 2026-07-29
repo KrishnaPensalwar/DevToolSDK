@@ -3,7 +3,7 @@ package io.github.krishnapensalwar.devkit.core.parser
 import io.github.krishnapensalwar.devkit.core.logging.DevLog
 import io.github.krishnapensalwar.devkit.core.logging.LogLevel
 
-object LogParser {
+internal object LogParser {
     fun parse(rawLog: String): DevLog? {
         // Example: 07-12 10:30:22.123 1234 5678 D LOGIN: User logged in
         val regex = """\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s([VDIWE])\s+(.*?):\s(.*)""".toRegex()

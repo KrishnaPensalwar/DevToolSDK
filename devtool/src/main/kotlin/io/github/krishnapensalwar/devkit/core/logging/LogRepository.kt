@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class LogRepository(private val logDao: LogDao) {
+internal class LogRepository(private val logDao: LogDao) {
     private val _logs = MutableStateFlow<List<DevLog>>(emptyList())
     val logs: StateFlow<List<DevLog>> = _logs.asStateFlow()
 

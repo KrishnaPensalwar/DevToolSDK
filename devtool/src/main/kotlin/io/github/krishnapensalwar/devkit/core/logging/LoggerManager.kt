@@ -5,7 +5,7 @@ import io.github.krishnapensalwar.devkit.data.database.LogDatabase
 import io.github.krishnapensalwar.devkit.network.database.NetworkDatabase
 import io.github.krishnapensalwar.devkit.network.repository.NetworkRepository
 
-object LoggerManager {
+internal object LoggerManager {
     private var repository: LogRepository? = null
     private var networkRepository: NetworkRepository? = null
 

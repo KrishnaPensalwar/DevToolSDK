@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(entities = [NetworkEntity::class], version = 1, exportSchema = false)
-abstract class NetworkDatabase : RoomDatabase() {
+internal abstract class NetworkDatabase : RoomDatabase() {
     abstract fun networkDao(): NetworkDao
 
     companion object {

@@ -8,7 +8,7 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MockDao {
+internal interface MockDao {
     @Query("SELECT * FROM mock_responses WHERE enabled = 1")
     fun getEnabledMocks(): Flow<List<MockEntity>>
 
