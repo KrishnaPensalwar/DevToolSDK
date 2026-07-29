@@ -1,7 +1,7 @@
 package io.github.krishnapensalwar.devkit.core.logging
 
-import io.github.krishnapensalwar.devkit.data.database.LogDao
-import io.github.krishnapensalwar.devkit.data.database.LogEntity
+import io.github.krishnapensalwar.devkit.internal.database.LogDao
+import io.github.krishnapensalwar.devkit.internal.database.LogEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

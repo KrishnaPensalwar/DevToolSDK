@@ -1,8 +1,8 @@
 package io.github.krishnapensalwar.devkit.core.logging
 
 import android.content.Context
-import io.github.krishnapensalwar.devkit.data.database.LogDatabase
-import io.github.krishnapensalwar.devkit.network.database.NetworkDatabase
+import io.github.krishnapensalwar.devkit.internal.database.LogDatabase
+import io.github.krishnapensalwar.devkit.internal.database.NetworkDatabase
 import io.github.krishnapensalwar.devkit.network.repository.NetworkRepository
 
 internal object LoggerManager {
