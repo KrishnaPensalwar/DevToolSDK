@@ -18,7 +18,7 @@ import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.theme.*
 
 @Composable
-fun DeviceInfoScreen(
+internal fun DeviceInfoScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {

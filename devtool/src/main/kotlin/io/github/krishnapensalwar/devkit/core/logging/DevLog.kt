@@ -1,6 +1,6 @@
 package io.github.krishnapensalwar.devkit.core.logging
 
-data class DevLog(
+internal data class DevLog(
     val id: Long = 0,
     val tag: String,
     val level: LogLevel,

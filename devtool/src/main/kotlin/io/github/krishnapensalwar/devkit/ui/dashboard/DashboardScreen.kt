@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen() {
+internal fun DashboardScreen() {
 
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -277,7 +277,7 @@ fun DashboardScreen() {
     }
 }
 
-enum class DashboardTab(val title: String, val icon: ImageVector) {
+internal enum class DashboardTab(val title: String, val icon: ImageVector) {
     HOME("Overview", Icons.Default.Dashboard),
     NETWORK("Network", Icons.Default.Http),
     ANALYTICS("Analytics", Icons.Default.Analytics),

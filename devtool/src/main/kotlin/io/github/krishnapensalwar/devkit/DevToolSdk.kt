@@ -5,7 +5,8 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import io.github.krishnapensalwar.devkit.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 import io.github.krishnapensalwar.devkit.mock.MockManager
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
@@ -22,7 +23,10 @@ private val Application.devToolDataStore by preferencesDataStore(
 
 private val MOCKING_ENABLED_KEY = booleanPreferencesKey("mocking_enabled")
 
-object DevToolSdk {
+/**
+ * Core manager object for DevTool SDK operations, database access, and mocking configuration.
+ */
+internal object DevToolSdk {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -30,19 +34,30 @@ object DevToolSdk {
     private var appContext: Application? = null
     private var database: DevToolDatabase? = null
 
+    /**
+     * Registers an [HttpClient] instance with the SDK.
+     *
+     * @param client The Ktor HttpClient instance.
+     */
     fun register(client: HttpClient) {
         clientRef = client
     }
 
-    private var currentConfig: DevToolConfig? = null
+    private var currentConfig: KtorDevToolConfig? = null
 
-    internal fun bind(config: DevToolConfig, client: HttpClient) {
+    internal fun bind(config: KtorDevToolConfig, client: HttpClient) {
         // Store config for later state updates
         currentConfig = config
         // No‑op for backward compatibility
     }
 
-    fun initialize(application: Application) {
+    /**
+     * Initializes internal database, mock manager, and cache manager.
+     * Called automatically by [DevTool.init].
+     *
+     * @param application The Android Application instance.
+     */
+    internal fun initialize(application: Application) {
         appContext = application
 
         database = Room.databaseBuilder(
@@ -60,6 +75,11 @@ object DevToolSdk {
         setMockingEnabled(true)
     }
 
+    /**
+     * Enables or disables global network traffic mocking at runtime.
+     *
+     * @param enabled `true` to enable mocking; `false` to disable.
+     */
     fun setMockingEnabled(enabled: Boolean) {
         appContext?.let { application ->
             scope.launch {
@@ -74,9 +94,19 @@ object DevToolSdk {
         currentConfig?.mockingEnabled = enabled
     }
 
+    /**
+     * Returns whether network mocking is currently enabled.
+     *
+     * @return `true` if mocking is enabled, `false` otherwise.
+     */
     fun isMockingEnabled(): Boolean =
         MockManager.isMockingEnabled()
 
+    /**
+     * Sets a custom mock resolver lambda for Ktor network requests.
+     *
+     * @param resolver Lambda returning a [MockResponse] for a request builder, or `null` to fallback.
+     */
     fun setMockResolver(
         resolver: (HttpRequestBuilder) -> MockResponse?
     ) {
@@ -88,11 +118,21 @@ object DevToolSdk {
     // ---------------------------------------------------------------------
     // Cache inspection and manipulation API (available when mocking is enabled)
     // ---------------------------------------------------------------------
-    /** Retrieve all cached responses. */
-    suspend fun getAllCachedResponses(): List<io.github.krishnapensalwar.devkit.database.CachedResponseEntity> =
+    /**
+     * Retrieves all cached responses stored in the SDK database.
+     *
+     * @return List of [CachedResponseEntity] instances.
+     */
+    suspend fun getAllCachedResponses(): List<CachedResponseEntity> =
         database?.cachedResponseDao()?.getAll() ?: emptyList()
 
-    /** Update the body of a cached response identified by URL and method. */
+    /**
+     * Updates the response body of a cached endpoint identified by URL and HTTP method.
+     *
+     * @param url The full URL string of the target request.
+     * @param method The HTTP method (e.g. GET, POST).
+     * @param newBody The updated JSON or text response body.
+     */
     suspend fun updateCachedResponse(
         url: String,
         method: String,
@@ -107,7 +147,7 @@ object DevToolSdk {
         val existing = dao.get(url, method)
         if (existing == null) {
             android.util.Log.w("NetworkInterceptor", "[DevToolSdk] No existing cached response found for URL=$url, Method=$method. Inserting new entry.")
-            val newEntity = io.github.krishnapensalwar.devkit.database.CachedResponseEntity(
+            val newEntity = CachedResponseEntity(
                 url = url,
                 method = method,
                 status = 200,
@@ -122,7 +162,9 @@ object DevToolSdk {
         }
     }
 
-    /** Clear all cached responses. */
+    /**
+     * Clears all cached network responses from the SDK database.
+     */
     suspend fun clearCache() {
         database?.cachedResponseDao()?.clearAll()
     }

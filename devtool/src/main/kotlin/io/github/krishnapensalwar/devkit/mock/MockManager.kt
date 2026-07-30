@@ -4,9 +4,9 @@ import android.app.Application
 import android.content.Context
 import io.github.krishnapensalwar.devkit.DevToolSdk
 import io.github.krishnapensalwar.devkit.MockResponse
-import io.github.krishnapensalwar.devkit.database.DevToolDatabase
-import io.github.krishnapensalwar.devkit.database.MockDao
-import io.github.krishnapensalwar.devkit.database.MockEntity
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.MockDao
+import io.github.krishnapensalwar.devkit.internal.database.MockEntity
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.http.ContentType
 import kotlinx.coroutines.CoroutineScope
@@ -21,7 +21,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.Protocol
 import org.json.JSONObject
 
-object MockManager {
+internal object MockManager {
     private lateinit var db: DevToolDatabase
     private var customResolver: ((HttpRequestBuilder) -> MockResponse?)? = null
     private var mockingEnabled: Boolean = true

@@ -1,7 +1,7 @@
 package io.github.krishnapensalwar.devkit.core.logging
 
-import io.github.krishnapensalwar.devkit.data.database.LogDao
-import io.github.krishnapensalwar.devkit.data.database.LogEntity
+import io.github.krishnapensalwar.devkit.internal.database.LogDao
+import io.github.krishnapensalwar.devkit.internal.database.LogEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class LogRepository(private val logDao: LogDao) {
+internal class LogRepository(private val logDao: LogDao) {
     private val _logs = MutableStateFlow<List<DevLog>>(emptyList())
     val logs: StateFlow<List<DevLog>> = _logs.asStateFlow()
 

@@ -44,7 +44,7 @@ private val DevToolShapes = Shapes(
 )
 
 @Composable
-fun DevToolTheme(
+internal fun DevToolTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

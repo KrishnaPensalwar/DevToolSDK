@@ -2,7 +2,7 @@ package io.github.krishnapensalwar.devkit.core.utils
 
 import android.net.Uri
 
-object ApiNameExtractor {
+internal object ApiNameExtractor {
 
     private val ignoredSegments = setOf(
         "api", "apis",

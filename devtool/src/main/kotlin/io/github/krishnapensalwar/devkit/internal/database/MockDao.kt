@@ -1,4 +1,4 @@
-package io.github.krishnapensalwar.devkit.database
+package io.github.krishnapensalwar.devkit.internal.database
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -8,7 +8,7 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MockDao {
+internal interface MockDao {
     @Query("SELECT * FROM mock_responses WHERE enabled = 1")
     fun getEnabledMocks(): Flow<List<MockEntity>>
 

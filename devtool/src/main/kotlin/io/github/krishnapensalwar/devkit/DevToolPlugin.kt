@@ -26,25 +26,31 @@ import kotlinx.coroutines.launch
 import io.ktor.client.statement.bodyAsText
 
 /**
- * Mutable configuration for [DevToolPlugin].
- * Keep mutable fields and read them on each request so [DevToolSdk] can toggle mocking at runtime.
+ * Configuration options for [DevToolPlugin].
  */
-class DevToolConfig {
-    /** When true, matched (or default) mock responses are returned and the request never hits the network. */
+class KtorDevToolConfig {
+    /** When true, matched or cached mock responses are returned without making a live network call. */
     var mockingEnabled: Boolean = true
 
-    /** Return a [MockResponse] to short-circuit, or null to use the built-in default mock body. */
+    /** Lambda function to resolve a custom [MockResponse] for a given [HttpRequestBuilder], or `null` to use cached/default mocks. */
     var mockResolver: (HttpRequestBuilder) -> MockResponse? = { null }
 
+    /** Lambda block to modify outgoing requests. */
     var requestModifier: (HttpRequestBuilder) -> Unit = {}
 
+    /** Lambda block to observe incoming responses. */
     var responseObserver: (HttpResponse) -> Unit = {}
 
+    /** Optional recorder callback for logging request and response pairs. */
     var recorder: ((HttpRequest, HttpResponse) -> Unit)? = null
 }
 
 /**
- * Mock HTTP response returned by the DevTool plugin when mocking is enabled.
+ * Represents a mock HTTP response returned by [DevToolPlugin] when network mocking is enabled.
+ *
+ * @property status HTTP status code of the mock response. Defaults to [HttpStatusCode.OK].
+ * @property headers HTTP headers of the mock response. Defaults to `Content-Type: application/json`.
+ * @property body Content stream of the mock response body.
  */
 data class MockResponse(
     val status: HttpStatusCode = HttpStatusCode.OK,
@@ -54,6 +60,13 @@ data class MockResponse(
     ),
     val body: ByteReadChannel = ByteReadChannel("{}")
 ) {
+    /**
+     * Constructs a [MockResponse] with a String body.
+     *
+     * @param status HTTP status code. Defaults to [HttpStatusCode.OK].
+     * @param headers HTTP headers. Defaults to `Content-Type: application/json`.
+     * @param body String content for the response body.
+     */
     constructor(
         status: HttpStatusCode = HttpStatusCode.OK,
         headers: Headers = headersOf(
@@ -64,9 +77,12 @@ data class MockResponse(
     ) : this(status, headers, ByteReadChannel(body))
 }
 
+/**
+ * Ktor [io.ktor.client.plugins.api.ClientPlugin] for inspecting, logging, caching, and mocking network traffic.
+ */
 val DevToolPlugin = createClientPlugin(
     name = "DevToolPlugin",
-    createConfiguration = ::DevToolConfig
+    createConfiguration = ::KtorDevToolConfig
 ) {
     // Cache config locally as recommended by Ktor; also avoids implicit-receiver
     // resolution issues inside the `on(Send)` hook below.

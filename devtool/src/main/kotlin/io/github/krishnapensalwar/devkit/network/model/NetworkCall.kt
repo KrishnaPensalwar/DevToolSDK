@@ -1,6 +1,6 @@
 package io.github.krishnapensalwar.devkit.network.model
 
-data class NetworkCall(
+internal data class NetworkCall(
     val id: Long = 0,
     val url: String,
     val endpoint: String,

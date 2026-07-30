@@ -1,12 +1,16 @@
-package io.github.krishnapensalwar.devkit.network.database
+package io.github.krishnapensalwar.devkit.internal.database
 
 import android.content.Context
+import androidx.annotation.RestrictTo
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import io.github.krishnapensalwar.devkit.network.database.NetworkDao
+import io.github.krishnapensalwar.devkit.network.database.NetworkEntity
 
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Database(entities = [NetworkEntity::class], version = 1, exportSchema = false)
-abstract class NetworkDatabase : RoomDatabase() {
+internal abstract class NetworkDatabase : RoomDatabase() {
     abstract fun networkDao(): NetworkDao
 
     companion object {
@@ -19,7 +23,9 @@ abstract class NetworkDatabase : RoomDatabase() {
                     context.applicationContext,
                     NetworkDatabase::class.java,
                     "devtool_network_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

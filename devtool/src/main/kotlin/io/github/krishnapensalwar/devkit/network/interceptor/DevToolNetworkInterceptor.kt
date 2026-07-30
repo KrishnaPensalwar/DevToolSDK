@@ -15,10 +15,21 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+/**
+ * OkHttp [Interceptor] that logs HTTP traffic, records performance timing, redacts sensitive headers,
+ * auto-caches responses, and short-circuits requests with mock data when mocking is enabled.
+ */
 class DevToolNetworkInterceptor : Interceptor {
     private val scope = CoroutineScope(Dispatchers.IO)
     private val TAG = "NetworkInterceptor"
 
+    /**
+     * Intercepts an outgoing OkHttp request chain to inspect data or serve mock responses.
+     *
+     * @param chain OkHttp interceptor chain.
+     * @return Real or mocked [Response].
+     * @throws IOException If network execution fails.
+     */
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()

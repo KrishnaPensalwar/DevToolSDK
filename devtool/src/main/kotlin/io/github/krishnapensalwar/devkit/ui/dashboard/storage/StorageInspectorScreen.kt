@@ -24,7 +24,7 @@ import androidx.navigation.NavController
 import java.io.File
 
 @Composable
-fun StorageInspectorScreen(
+internal fun StorageInspectorScreen(
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
