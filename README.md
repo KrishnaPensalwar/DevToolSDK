@@ -64,24 +64,11 @@ DevKit integrates with both **OkHttp** and **Ktor** HTTP clients and provides a 
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
-<!-- Add your screenshots/GIFs here -->
-<!--
-<p align="center">
-  <img src="screenshots/dashboard_home.png" width="250" />
-  <img src="screenshots/network_list.png" width="250" />
-  <img src="screenshots/network_detail.png" width="250" />
-</p>
-<p align="center">
-  <img src="screenshots/crash_screen.png" width="250" />
-  <img src="screenshots/storage_inspector.png" width="250" />
-  <img src="screenshots/device_info.png" width="250" />
-</p>
--->
+View all DevTool SDK screenshots here:
 
-> 🚧 **Screenshots coming soon!** Build the sample app and navigate to the dashboard to see DevKit in action.
-
+[📸 View Screenshots](screenshots)
 ---
 
 ## 📦 Installation
@@ -119,13 +106,34 @@ dependencyResolutionManagement {
 
 ### Requirements
 
-| Requirement | Minimum |
-|---|---|
-| Android SDK | API 24 (Android 7.0) |
-| Kotlin | 2.1.0+ |
-| Jetpack Compose BOM | 2026.03.00+ |
-| Java | 17 |
 
+
+### Build Environment & SDKs
+
+| Requirement | Minimum Version | Note / Purpose |
+| :--- | :--- | :--- |
+| **JDK (Java)** | `17` | Configured for source/target compatibility and Kotlin JVM target |
+| **Gradle** | `9.3.0` | Required to support the Android Gradle Plugin and Kotlin compiler |
+| **Android Gradle Plugin (AGP)** | `8.9.2` | Configures the Android library build system |
+| **Compile SDK** | `35` | Required for platform APIs |
+| **Min SDK** | `24` | Minimum supported Android version for the DevTool SDK |
+
+### Compilers & Annotation Processors
+
+| Tool / Plugin | Version | Note / Compatibility Rule |
+| :--- | :--- | :--- |
+| **Kotlin Compiler** | `2.1.0` | Uses the Kotlin 2.0+ unified Compose compiler |
+| **KSP (Kotlin Symbol Processing)** | `2.1.0-1.0.29` | **Must** match the major/minor Kotlin version (`2.1.0`) |
+
+### Critical Libraries
+
+| Library | Version | Purpose |
+| :--- | :--- | :--- |
+| **Jetpack Navigation 3** | `1.2.0-alpha06` | Drives the state-based app back stack and screen transitions |
+| **Jetpack Compose BOM** | `2026.03.00` | Manages Compose UI, Material 3, and Foundation versions |
+| **Room Database** | `2.6.1` | Local persistence for network logging and mocking database tables |
+| **Ktor Client** | `3.2.3` | Serialization and client network operations |
+| **OkHttp** | `5.3.2` | Core network interceptor mechanism |
 ---
 
 ## 🚀 Quick Start
