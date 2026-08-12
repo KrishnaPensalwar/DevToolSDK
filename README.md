@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Platform-Android-brightgreen?style=for-the-badge&logo=android" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Kotlin-purple?style=for-the-badge&logo=kotlin" alt="Language" />
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue?style=for-the-badge&logo=jetpackcompose" alt="UI" />
-  <img src="https://img.shields.io/badge/Min%20SDK-24-orange?style=for-the-badge" alt="Min SDK" />
+  <img src="https://img.shields.io/badge/Min%20SDK-21-orange?style=for-the-badge" alt="Min SDK" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-red?style=for-the-badge" alt="License" />
 </p>
 
@@ -104,36 +104,61 @@ dependencyResolutionManagement {
 }
 ```
 
+### Local attach (recommended — avoids AGP version clashes)
+
+Do **not** import this repo as a Gradle module / `include(":devtool")` / `includeBuild(...)`.
+That compiles DevKit with **its** Android Gradle Plugin next to **your app's** AGP and triggers:
+
+`The Android Gradle plugin supports only one version at a time` / multiple AGP versions.
+
+Publish the AAR to your machine, then depend on it like any other library:
+
+```bash
+# in DevToolSDK
+./gradlew :devtool:publishToMavenLocal
+```
+
+```kotlin
+// your app settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        google()
+        mavenCentral()
+    }
+}
+```
+
+```kotlin
+// your app module build.gradle.kts
+debugImplementation("io.github.krishnapensalwar:devkit:1.0.0")
+```
+
+Your app keeps its own AGP / Gradle / Kotlin versions. Gradle will resolve library versions to the highest requested (yours or DevKit's).
+
 ### Requirements
 
+### Consumer app (using the AAR)
 
-
-### Build Environment & SDKs
-
-| Requirement | Minimum Version | Note / Purpose |
+| Requirement | Minimum | Notes |
 | :--- | :--- | :--- |
-| **JDK (Java)** | `17` | Configured for source/target compatibility and Kotlin JVM target |
-| **Gradle** | `9.3.0` | Required to support the Android Gradle Plugin and Kotlin compiler |
-| **Android Gradle Plugin (AGP)** | `8.9.2` | Configures the Android library build system |
-| **Compile SDK** | `35` | Required for platform APIs |
-| **Min SDK** | `24` | Minimum supported Android version for the DevTool SDK |
+| **JDK** | `17` | |
+| **Gradle** | `8.2` | Gradle 7.x is not supported |
+| **Android Gradle Plugin** | `8.2+` | Any AGP 8.2 or newer is fine — DevKit does not pin your AGP |
+| **Compile SDK** | `34` | |
+| **Min SDK** | `21` | |
+| **Kotlin** | `1.9.24+` | |
 
-### Compilers & Annotation Processors
+### Critical libraries (transitive — Gradle may upgrade them)
 
-| Tool / Plugin | Version | Note / Compatibility Rule |
+| Library | DevKit uses | Purpose |
 | :--- | :--- | :--- |
-| **Kotlin Compiler** | `2.1.0` | Uses the Kotlin 2.0+ unified Compose compiler |
-| **KSP (Kotlin Symbol Processing)** | `2.1.0-1.0.29` | **Must** match the major/minor Kotlin version (`2.1.0`) |
+| **Jetpack Compose BOM** | `2024.06.00` | Dashboard UI |
+| **Navigation Compose** | `2.7.7` | Dashboard navigation |
+| **Room** | `2.6.1` | Network / crash / cache storage |
+| **Ktor Client** | `3.0.3` | Ktor plugin API |
+| **OkHttp** | `4.12.0` | OkHttp interceptor API |
 
-### Critical Libraries
-
-| Library | Version | Purpose |
-| :--- | :--- | :--- |
-| **Jetpack Navigation 3** | `1.2.0-alpha06` | Drives the state-based app back stack and screen transitions |
-| **Jetpack Compose BOM** | `2026.03.00` | Manages Compose UI, Material 3, and Foundation versions |
-| **Room Database** | `2.6.1` | Local persistence for network logging and mocking database tables |
-| **Ktor Client** | `3.2.3` | Serialization and client network operations |
-| **OkHttp** | `5.3.2` | Core network interceptor mechanism |
 ---
 
 ## 🚀 Quick Start
@@ -434,12 +459,24 @@ All data (network calls, crash logs, cached responses, mock configurations) is p
 <details>
 <summary><strong>What's the minimum Android version?</strong></summary>
 
-DevKit supports **API 24** (Android 7.0 Nougat) and above.
+DevKit supports **API 21** (Android 5.0 Lollipop) and above.
 </details>
 
 ---
 
 ## 🔧 Troubleshooting
+
+### Multiple Android Gradle plugin versions / AGP clash
+
+This happens if the DevKit **source** is added as a module (`include`, `includeBuild`, or Android Studio “Import Module”). The SDK and the app then each apply a different AGP.
+
+Use a published AAR instead:
+
+```bash
+./gradlew :devtool:publishToMavenLocal
+```
+
+Then `mavenLocal()` + `debugImplementation("io.github.krishnapensalwar:devkit:1.0.0")` in the app. Do not include this repo in the app’s Gradle project.
 
 ### Floating button not appearing
 

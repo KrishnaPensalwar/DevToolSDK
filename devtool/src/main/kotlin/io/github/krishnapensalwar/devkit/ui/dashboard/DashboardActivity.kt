@@ -15,7 +15,7 @@ internal class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             DevToolTheme {
-                DashboardScreen()
+                DashboardScreen(onClose = ::finish)
             }
         }
     }
