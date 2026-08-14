@@ -80,6 +80,8 @@ data class MockResponse(
 /**
  * Ktor [io.ktor.client.plugins.api.ClientPlugin] for inspecting, logging, caching, and mocking network traffic.
  */
+val StartTimeKey = io.ktor.util.AttributeKey<Long>("DevToolStartTime")
+
 val DevToolPlugin = createClientPlugin(
     name = "DevToolPlugin",
     createConfiguration = ::KtorDevToolConfig
@@ -92,6 +94,7 @@ val DevToolPlugin = createClientPlugin(
     DevToolSdk.bind(config, ktorClient)
 
     onRequest { request, _ ->
+        request.attributes.put(StartTimeKey, System.nanoTime())
         config.requestModifier(request)
     }
 
@@ -145,13 +148,27 @@ val DevToolPlugin = createClientPlugin(
             )
         }
 
-        // No mock or cache, proceed to network
-        // If mocking is enabled but no cache, respond with default mock
-        val defaultMock = defaultMockResponse(request)
+        // No mock or cache found, but mocking is enabled. Return detailed error mock response.
+        val path = request.url.encodedPath
+        val errorBody = """
+            {
+              "error": "DevToolSDK Mocking Enabled",
+              "message": "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.",
+              "url": "${request.url}"
+            }
+        """.trimIndent()
+        val errorMock = MockResponse(
+            status = HttpStatusCode.NotFound,
+            headers = headersOf(
+                HttpHeaders.ContentType,
+                ContentType.Application.Json.toString()
+            ),
+            body = errorBody
+        )
         return@on buildMockCall(
             client = ktorClient,
             requestData = request.build(),
-            mock = defaultMock,
+            mock = errorMock,
             callContext = coroutineContext
         )
     }

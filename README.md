@@ -80,7 +80,7 @@ Add the dependency to your app module's `build.gradle.kts`:
 ```kotlin
 dependencies {
     // Use debugImplementation so DevKit is stripped from release builds
-    debugImplementation("io.github.krishnapensalwar:devkit:1.0.0")
+    debugImplementation("io.github.krishnapensalwar:devkit:1.0.3")
 }
 ```
 
@@ -88,7 +88,7 @@ Or if using Groovy (`build.gradle`):
 
 ```groovy
 dependencies {
-    debugImplementation 'io.github.krishnapensalwar:devkit:1.0.0'
+    debugImplementation 'io.github.krishnapensalwar:devkit:1.0.3'
 }
 ```
 
@@ -131,7 +131,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 // your app module build.gradle.kts
-debugImplementation("io.github.krishnapensalwar:devkit:1.0.0")
+debugImplementation("io.github.krishnapensalwar:devkit:1.0.3")
 ```
 
 Your app keeps its own AGP / Gradle / Kotlin versions. Gradle will resolve library versions to the highest requested (yours or DevKit's).
@@ -206,6 +206,9 @@ val httpClient = HttpClient(Android) {
     }
 }
 ```
+
+> [!TIP]
+> `withDevTool` works with any Ktor engine (e.g. `Android`, `CIO`, `OkHttp`, etc.). You do **not** need to add an OkHttp interceptor like `DevToolNetworkInterceptor` to Ktor clients; the `withDevTool` plugin intercepts and logs all HTTP calls automatically.
 
 ---
 
@@ -283,9 +286,7 @@ When mocking is enabled, requests are resolved in this order:
 1. **Custom Mock Resolver** — Your programmatic mock function
 2. **Mock Database** — Mocks saved via the dashboard UI
 3. **Cached Responses** — Previously cached real API responses
-4. **Default Mock** — A generic JSON response (Ktor plugin only)
-
-If no mock is found in OkHttp mode, the request proceeds to the real network.
+4. **Descriptive Mock Error Response (404)** — If no custom mock or cached response is found, both Ktor (`DevToolPlugin`) and OkHttp (`DevToolNetworkInterceptor`) return a descriptive `404 Not Found` JSON response clarifying that mocking is enabled but no mock/cache has been stored. This prevents live requests from reaching your production backend accidentally when mocking is enabled.
 
 ### Response Cache Management
 
@@ -486,7 +487,7 @@ Then `mavenLocal()` + `debugImplementation("io.github.krishnapensalwar:devkit:1.
 
 ### Network calls not showing up
 
-- Verify that `DevToolNetworkInterceptor()` is added to your OkHttp client, or `withDevTool {}` is installed on your Ktor client.
+- Verify that `DevToolNetworkInterceptor()` is added to your OkHttp client, or `withDevTool {}` is installed on your Ktor client. (Note: `withDevTool` supports all Ktor engines including `CIO` and `Android` and does not require OkHttp interceptors).
 - Make sure `isNetworkMonitoringEnabled` is `true` (default).
 - Confirm `DevTool.init()` is called **before** any network requests are made.
 
@@ -498,8 +499,7 @@ Then `mavenLocal()` + `debugImplementation("io.github.krishnapensalwar:devkit:1.
 ### Mock responses not being served
 
 - Check that mocking is enabled: `DevToolSdk.isMockingEnabled()` should return `true`.
-- For OkHttp: The interceptor checks the mock database and cache. Ensure the URL and HTTP method match exactly.
-- For Ktor: The plugin checks your custom resolver first, then the cache, then falls back to a default mock.
+- For both Ktor and OkHttp: The SDK checks your custom resolver first, then the mock database, then the cache database. If no mock or cache is resolved, a structured `404 Not Found` error response is returned to prevent live server calls while mocking is enabled.
 
 ### `IllegalStateException: LoggerManager not initialized`
 

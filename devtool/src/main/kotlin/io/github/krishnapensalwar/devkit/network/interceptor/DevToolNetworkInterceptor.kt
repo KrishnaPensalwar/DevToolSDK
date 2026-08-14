@@ -11,6 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.Response
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okhttp3.Protocol
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -51,22 +54,32 @@ class DevToolNetworkInterceptor : Interceptor {
                 isMocked = true
                 Log.d(TAG, "[DevToolNetworkInterceptor] Mock response FOUND in database/cache. SHORT-CIRCUITING network call.")
             } else {
-                Log.d(TAG, "[DevToolNetworkInterceptor] No mock response found for this URL in database/cache.")
+                Log.d(TAG, "[DevToolNetworkInterceptor] No mock response found for this URL in database/cache. Returning detailed error response.")
+                val path = request.url.encodedPath
+                val errorJson = JSONObject().apply {
+                    put("error", "DevToolSDK Mocking Enabled")
+                    put("message", "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.")
+                    put("url", request.url.toString())
+                }.toString()
+
+                resolvedResponse = Response.Builder()
+                    .request(request)
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(404)
+                    .message("Mock Not Found")
+                    .body(errorJson.toResponseBody("application/json".toMediaTypeOrNull()))
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+                isMocked = true
             }
         }
 
-        val response: Response
-        if (resolvedResponse != null) {
-            response = resolvedResponse
-        } else {
-            try {
-                Log.d(TAG, "[DevToolNetworkInterceptor] Proceeding network chain to: ${request.url.host}")
-                response = chain.proceed(request)
-            } catch (e: Exception) {
-                Log.e(TAG, "[DevToolNetworkInterceptor] Network exception encountered: ${e.message}", e)
-                // TODO: Log exception in NetworkCall
-                throw e
-            }
+        val response = resolvedResponse ?: try {
+            Log.d(TAG, "[DevToolNetworkInterceptor] Proceeding network chain to: ${request.url.host}")
+            chain.proceed(request)
+        } catch (e: Exception) {
+            Log.e(TAG, "[DevToolNetworkInterceptor] Network exception encountered: ${e.message}", e)
+            throw e
         }
 
         val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
