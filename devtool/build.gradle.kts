@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     `maven-publish`
+    signing
 }
 
 group = property("GROUP").toString()
@@ -132,6 +133,26 @@ afterEvaluate {
                     }
                 }
             }
+        }
+
+        repositories {
+            maven {
+                name = "MavenCentral"
+                url = uri("https://central.sonatype.com/repository/maven-releases/")
+                credentials {
+                    username = providers.gradleProperty("mavenCentralUsername").orNull
+                    password = providers.gradleProperty("mavenCentralPassword").orNull
+                }
+            }
+        }
+    }
+
+    signing {
+        val signingKey = providers.gradleProperty("signingInMemoryKey").orNull
+        val signingPassword = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+        if (!signingKey.isNullOrEmpty() && !signingPassword.isNullOrEmpty()) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
+            sign(publishing.publications)
         }
     }
 }
