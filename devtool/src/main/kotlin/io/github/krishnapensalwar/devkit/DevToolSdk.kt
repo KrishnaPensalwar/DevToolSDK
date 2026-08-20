@@ -1,34 +1,21 @@
 package io.github.krishnapensalwar.devkit
 
 import android.app.Application
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.Context
 import androidx.room.Room
-import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
 import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
 import io.github.krishnapensalwar.devkit.mock.MockManager
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
-private const val DATASTORE_NAME = "devtool_prefs"
-
-private val Application.devToolDataStore by preferencesDataStore(
-    name = DATASTORE_NAME
-)
-
-private val MOCKING_ENABLED_KEY = booleanPreferencesKey("mocking_enabled")
+private const val PREFS_NAME = "devtool_prefs"
+private const val KEY_MOCKING_ENABLED = "mocking_enabled"
 
 /**
  * Core manager object for DevTool SDK operations, database access, and mocking configuration.
  */
 internal object DevToolSdk {
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var clientRef: HttpClient? = null
     private var appContext: Application? = null
@@ -48,7 +35,8 @@ internal object DevToolSdk {
     internal fun bind(config: KtorDevToolConfig, client: HttpClient) {
         // Store config for later state updates
         currentConfig = config
-        // No‑op for backward compatibility
+        // Sync config with current mocking state
+        config.mockingEnabled = isMockingEnabled()
     }
 
     /**
@@ -72,7 +60,9 @@ internal object DevToolSdk {
         MockManager.init(database!!, application)
         io.github.krishnapensalwar.devkit.cache.CacheManager.init(database!!)
 
-        setMockingEnabled(true)
+        val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isEnabled = prefs.getBoolean(KEY_MOCKING_ENABLED, false)
+        setMockingEnabled(isEnabled)
     }
 
     /**
@@ -81,13 +71,10 @@ internal object DevToolSdk {
      * @param enabled `true` to enable mocking; `false` to disable.
      */
     fun setMockingEnabled(enabled: Boolean) {
-        appContext?.let { application ->
-            scope.launch {
-                application.devToolDataStore.edit { prefs ->
-                    prefs[MOCKING_ENABLED_KEY] = enabled
-                }
-            }
-        }
+        appContext?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            ?.edit()
+            ?.putBoolean(KEY_MOCKING_ENABLED, enabled)
+            ?.apply()
 
         MockManager.setMockingEnabled(enabled)
         // Update plugin config if bound

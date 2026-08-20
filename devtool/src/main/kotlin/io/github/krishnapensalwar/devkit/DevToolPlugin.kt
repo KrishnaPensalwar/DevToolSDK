@@ -101,21 +101,29 @@ val DevToolPlugin = createClientPlugin(
     onResponse { response ->
         config.responseObserver(response)
         config.recorder?.invoke(response.call.request, response)
-        // Save to cache when mocking enabled
-        if (config.mockingEnabled) {
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    val bodyText = response.bodyAsText()
-                    io.github.krishnapensalwar.devkit.cache.CacheManager.save(
-                        url = response.call.request.url.toString(),
-                        method = response.call.request.method.value,
-                        status = response.status.value,
-                        headers = response.headers,
-                        body = bodyText
-                    )
-                } catch (e: Exception) {
-                    // ignore cache errors
+        
+        // Root Cause Fix: Read body within the hook's scope to avoid "Parent job is completed"
+        // We only record if mocking is DISABLED (to capture real traffic for future mocking)
+        if (!config.mockingEnabled) {
+            try {
+                // Read body synchronously while the response job is still active
+                val bodyText = response.bodyAsText()
+                
+                GlobalScope.launch(Dispatchers.IO) {
+                    try {
+                        io.github.krishnapensalwar.devkit.cache.CacheManager.save(
+                            url = response.call.request.url.toString(),
+                            method = response.call.request.method.value,
+                            status = response.status.value,
+                            headers = response.headers,
+                            body = bodyText
+                        )
+                    } catch (e: Exception) {
+                        // ignore cache errors
+                    }
                 }
+            } catch (e: Exception) {
+                // ignore if body cannot be read (e.g. already consumed or connection closed)
             }
         }
     }
