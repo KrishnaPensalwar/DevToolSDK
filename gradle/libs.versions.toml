@@ -18,6 +18,7 @@ junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 androidxNavigation = "2.7.7"
 agp = "8.2.2"
+dokka = "1.9.20"
 
 [libraries]
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidxDatastore" }
@@ -66,4 +67,5 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 # maven-publish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }

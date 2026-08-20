@@ -20,6 +20,9 @@ object DevTool {
     var config: DevtoolConfig = DevtoolConfig()
         private set
 
+
+    @Volatile
+    private var initialized = false
     /**
      * Single entry point to initialize the DevTool SDK.
      *
@@ -30,25 +33,34 @@ object DevTool {
      * @param config Optional configuration settings to customize SDK features.
      */
     fun init(context: Context, config: DevtoolConfig = DevtoolConfig()) {
-        this.config = config
-        val application = context.applicationContext as Application
-        
-        // Initialize Logger
-        LoggerManager.init(context)
-
-        // Initialize Network, DB, and Mocking
-        DevToolSdk.initialize(application)
-
-        if (config.isCrashReportingEnabled) {
-            CrashCollector.start()
+        if(initialized){
+           return
         }
+        synchronized(this){
+            if(initialized) return
+            this.config = config
+            val application = context.applicationContext as Application
+
+            // Initialize Logger
+            LoggerManager.init(context)
+
+            // Initialize Network, DB, and Mocking
+            DevToolSdk.initialize(application)
+
+            if (config.isCrashReportingEnabled) {
+                CrashCollector.start()
+            }
 
 //        if (config.isPerformanceMonitoringEnabled) {
 //            PerformanceCollector.start(context)
 //        }
 
-        if (config.isFloatingButtonEnabled) {
-            FloatingButtonManager.init(application)
+            if (config.isFloatingButtonEnabled) {
+                FloatingButtonManager.init(application)
+            }
+
+            initialized = true
         }
+
     }
 }

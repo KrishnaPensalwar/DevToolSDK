@@ -174,7 +174,8 @@ internal fun CacheScreen(
                                                 Destination.ResponseEditor(
                                                     url = item.url,
                                                     method = item.method,
-                                                    initialBody = item.body
+                                                    initialBody = item.body,
+                                                    initialStatus = item.status
                                                 )
                                             )
                                         },

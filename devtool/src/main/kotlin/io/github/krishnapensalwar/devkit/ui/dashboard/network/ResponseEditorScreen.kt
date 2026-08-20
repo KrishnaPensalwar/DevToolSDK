@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.List
@@ -22,6 +24,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
@@ -36,14 +39,21 @@ import org.json.JSONObject
 @Composable
 fun ResponseEditorScreen(
     initialBody: String,
+    initialStatus: Int,
     endpoint: String,
     navController: NavController,
-    onSave: (String) -> Unit
+    onSave: (String, Int) -> Unit
 ) {
     var jsonStringState by remember { mutableStateOf(initialBody) }
     var showRawEditor by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    
+
+    // Status code editing state
+    val safeInitialStatus = if (initialStatus in 100..599) initialStatus else 200
+    var statusText by remember { mutableStateOf(safeInitialStatus.toString()) }
+    val statusValue = statusText.trim().toIntOrNull()
+    val isStatusValid = statusValue != null && statusValue in 100..599
+
     // Popup Edit Dialog state
     var fieldEditItem by remember { mutableStateOf<Pair<List<String>, Any>?>(null) }
     var editValueText by remember { mutableStateOf("") }
@@ -101,20 +111,25 @@ fun ResponseEditorScreen(
 
                     // Save Button
                     IconButton(
+                        enabled = isStatusValid,
                         onClick = {
-                            Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string to DB save: $jsonStringState")
-                            onSave(jsonStringState)
+                            Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string + status=$statusValue to DB save: $jsonStringState")
+                            onSave(jsonStringState, statusValue ?: safeInitialStatus)
                             navController.pop()
                         },
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .background(
+                                if (isStatusValid) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
                     ) {
                         Icon(
                             Icons.Filled.Check,
                             contentDescription = "Save",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            tint = if (isStatusValid) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -133,6 +148,16 @@ fun ResponseEditorScreen(
                 fontFamily = FontFamily.Monospace,
                 color = sdkOnSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Status Code Editor (dropdown presets + custom value)
+            StatusCodeEditor(
+                statusText = statusText,
+                onStatusTextChange = { statusText = it },
+                isValid = isStatusValid,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
             )
 
             // Search Bar (Always visible at the top)
@@ -243,6 +268,91 @@ fun ResponseEditorScreen(
             }
         )
     }
+}
+
+private val STATUS_CODE_PRESETS = listOf(200, 201, 204, 301, 400, 401, 403, 404, 500, 502, 503)
+
+@Composable
+private fun StatusCodeEditor(
+    statusText: String,
+    onStatusTextChange: (String) -> Unit,
+    isValid: Boolean,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        OutlinedTextField(
+            value = statusText,
+            onValueChange = { input ->
+                onStatusTextChange(input.filter { it.isDigit() }.take(3))
+            },
+            label = { Text("Status Code") },
+            singleLine = true,
+            isError = !isValid,
+            supportingText = {
+                if (!isValid) {
+                    Text("Enter a valid HTTP status code (100\u2013599)")
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            trailingIcon = {
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Choose a common status code",
+                        tint = sdkOnSurfaceVariant
+                    )
+                }
+            },
+            textStyle = androidx.compose.ui.text.TextStyle(
+                fontFamily = FontFamily.Monospace,
+                color = sdkOnSurface
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Box {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                STATUS_CODE_PRESETS.forEach { code ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "$code  ${httpStatusLabel(code)}",
+                                fontFamily = FontFamily.Monospace
+                            )
+                        },
+                        onClick = {
+                            onStatusTextChange(code.toString())
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun httpStatusLabel(code: Int): String = when (code) {
+    200 -> "OK"
+    201 -> "Created"
+    204 -> "No Content"
+    301 -> "Moved Permanently"
+    400 -> "Bad Request"
+    401 -> "Unauthorized"
+    403 -> "Forbidden"
+    404 -> "Not Found"
+    500 -> "Internal Server Error"
+    502 -> "Bad Gateway"
+    503 -> "Service Unavailable"
+    else -> ""
 }
 
 // Helper to determine type parsing automatically

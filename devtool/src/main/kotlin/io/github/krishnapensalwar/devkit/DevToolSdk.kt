@@ -132,13 +132,15 @@ internal object DevToolSdk {
      * @param url The full URL string of the target request.
      * @param method The HTTP method (e.g. GET, POST).
      * @param newBody The updated JSON or text response body.
+     * @param newStatus Optional updated HTTP status code. When null the existing status is kept.
      */
     suspend fun updateCachedResponse(
         url: String,
         method: String,
-        newBody: String
+        newBody: String,
+        newStatus: Int? = null
     ) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        android.util.Log.d("NetworkInterceptor", "[DevToolSdk] updateCachedResponse called for URL=$url, Method=$method")
+        android.util.Log.d("NetworkInterceptor", "[DevToolSdk] updateCachedResponse called for URL=$url, Method=$method, Status=$newStatus")
         val dao = database?.cachedResponseDao()
         if (dao == null) {
             android.util.Log.e("NetworkInterceptor", "[DevToolSdk] Database or CachedResponseDao is NULL")
@@ -150,13 +152,13 @@ internal object DevToolSdk {
             val newEntity = CachedResponseEntity(
                 url = url,
                 method = method,
-                status = 200,
+                status = newStatus ?: 200,
                 headersJson = "{}",
                 body = newBody
             )
             dao.insert(newEntity)
         } else {
-            val updated = existing.copy(body = newBody)
+            val updated = existing.copy(body = newBody, status = newStatus ?: existing.status)
             dao.insert(updated)
             android.util.Log.d("NetworkInterceptor", "[DevToolSdk] Updated existing cached response successfully in DB.")
         }

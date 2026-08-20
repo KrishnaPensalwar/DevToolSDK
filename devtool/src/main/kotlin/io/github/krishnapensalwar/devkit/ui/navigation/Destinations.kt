@@ -11,7 +11,8 @@ internal sealed interface Destination {
     data class ResponseEditor(
         val url: String,
         val method: String,
-        val initialBody: String
+        val initialBody: String,
+        val initialStatus: Int
     ) : Destination
     data class NetworkDetail(val callId: Long) : Destination
 }
@@ -35,6 +36,7 @@ internal fun NavController.navigateTo(destination: Destination) {
             currentBackStackEntry?.savedStateHandle?.set("url", destination.url)
             currentBackStackEntry?.savedStateHandle?.set("method", destination.method)
             currentBackStackEntry?.savedStateHandle?.set("initialBody", destination.initialBody)
+            currentBackStackEntry?.savedStateHandle?.set("initialStatus", destination.initialStatus)
             navigate("response_editor")
         }
 

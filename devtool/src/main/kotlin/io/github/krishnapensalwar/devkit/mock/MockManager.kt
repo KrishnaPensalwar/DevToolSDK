@@ -24,7 +24,7 @@ import org.json.JSONObject
 internal object MockManager {
     private lateinit var db: DevToolDatabase
     private var customResolver: ((HttpRequestBuilder) -> MockResponse?)? = null
-    private var mockingEnabled: Boolean = true
+    private var mockingEnabled: Boolean = false
     private val scope = CoroutineScope(Dispatchers.IO)
 
     fun init(database: DevToolDatabase, context: Context) {
