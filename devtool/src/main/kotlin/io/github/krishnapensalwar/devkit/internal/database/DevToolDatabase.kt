@@ -7,9 +7,20 @@ import io.github.krishnapensalwar.devkit.network.database.NetworkDao
 import io.github.krishnapensalwar.devkit.network.database.NetworkEntity
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@Database(entities = [MockEntity::class, NetworkEntity::class, CachedResponseEntity::class], version = 2, exportSchema = false)
+@Database(
+    entities = [
+        MockEntity::class,
+        NetworkEntity::class,
+        CachedResponseEntity::class,
+        MockApiConfigEntity::class,
+        MockCustomScenarioEntity::class
+    ],
+    version = 3,
+    exportSchema = false
+)
 internal abstract class DevToolDatabase : RoomDatabase() {
     abstract fun mockDao(): MockDao
     abstract fun networkDao(): NetworkDao
     abstract fun cachedResponseDao(): CachedResponseDao
+    abstract fun mockScenarioDao(): MockScenarioDao
 }

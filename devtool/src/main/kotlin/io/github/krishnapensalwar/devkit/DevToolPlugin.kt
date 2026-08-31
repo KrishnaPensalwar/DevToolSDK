@@ -1,5 +1,9 @@
 package io.github.krishnapensalwar.devkit
 
+import io.github.krishnapensalwar.devkit.mock.MockDecision
+import io.github.krishnapensalwar.devkit.mock.MockManager
+import io.github.krishnapensalwar.devkit.mock.scenario.MockPlan
+import io.github.krishnapensalwar.devkit.mock.toException
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.plugins.api.Send
@@ -129,7 +133,7 @@ val DevToolPlugin = createClientPlugin(
     }
 
     on(Send) { request ->
-        if (!config.mockingEnabled) {
+        if (!MockManager.isMockingEnabled()) {
             return@on proceed(request)
         }
 
@@ -144,41 +148,47 @@ val DevToolPlugin = createClientPlugin(
             )
         }
 
-        // Attempt to serve from cache
-        val cached = io.github.krishnapensalwar.devkit.cache.CacheManager.get(request.url.toString(), request.method.value)
-        if (cached != null) {
-            val mockFromCache = io.github.krishnapensalwar.devkit.cache.CacheManager.toMockResponse(cached)
-            return@on buildMockCall(
-                client = ktorClient,
-                requestData = request.build(),
-                mock = mockFromCache,
-                callContext = coroutineContext
-            )
-        }
-
-        // No mock or cache found, but mocking is enabled. Return detailed error mock response.
-        val path = request.url.encodedPath
-        val errorBody = """
-            {
-              "error": "DevToolSDK Mocking Enabled",
-              "message": "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.",
-              "url": "${request.url}"
+        when (val decision = MockManager.decide(request.url.toString(), request.method.value)) {
+            MockDecision.PassThrough -> return@on proceed(request)
+            is MockDecision.Serve -> {
+                if (decision.plan.delayMs > 0) {
+                    kotlinx.coroutines.delay(decision.plan.delayMs)
+                }
+                if (decision.plan.failure != io.github.krishnapensalwar.devkit.mock.scenario.MockFailureKind.NONE) {
+                    throw decision.plan.toException()
+                }
+                return@on buildMockCall(
+                    client = ktorClient,
+                    requestData = request.build(),
+                    mock = decision.plan.toKtorMock(),
+                    callContext = coroutineContext
+                )
             }
-        """.trimIndent()
-        val errorMock = MockResponse(
-            status = HttpStatusCode.NotFound,
-            headers = headersOf(
-                HttpHeaders.ContentType,
-                ContentType.Application.Json.toString()
-            ),
-            body = errorBody
-        )
-        return@on buildMockCall(
-            client = ktorClient,
-            requestData = request.build(),
-            mock = errorMock,
-            callContext = coroutineContext
-        )
+            MockDecision.Missing -> {
+                val path = request.url.encodedPath
+                val errorBody = """
+                    {
+                      "error": "DevToolSDK Mocking Enabled",
+                      "message": "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.",
+                      "url": "${request.url}"
+                    }
+                """.trimIndent()
+                val errorMock = MockResponse(
+                    status = HttpStatusCode.NotFound,
+                    headers = headersOf(
+                        HttpHeaders.ContentType,
+                        ContentType.Application.Json.toString()
+                    ),
+                    body = errorBody
+                )
+                return@on buildMockCall(
+                    client = ktorClient,
+                    requestData = request.build(),
+                    mock = errorMock,
+                    callContext = coroutineContext
+                )
+            }
+        }
     }
 }
 
@@ -225,4 +235,18 @@ private fun defaultMockResponse(request: HttpRequestBuilder): MockResponse {
         else -> """{"mocked":true,"path":"$path"}"""
     }
     return MockResponse(body = body)
+}
+
+private fun MockPlan.toKtorMock(): MockResponse {
+    val builder = io.ktor.http.HeadersBuilder()
+    headers.forEach { (key, value) -> builder.append(key, value) }
+    builder.append("X-Mock-Source", "Scenario")
+    builder.append("X-Mock-Scenario", scenarioName)
+    builder.append("X-Mock-Key", scenarioKey)
+    val code = statusCode.coerceIn(100, 599)
+    return MockResponse(
+        status = HttpStatusCode.fromValue(code),
+        headers = builder.build(),
+        body = body
+    )
 }

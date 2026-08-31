@@ -421,7 +421,10 @@ internal fun NetworkCallItem(
 
                 Spacer(Modifier.height(6.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Surface(
                         color = methodColor(call.method).copy(alpha = 0.15f),
                         shape = RoundedCornerShape(6.dp)
@@ -442,8 +445,30 @@ internal fun NetworkCallItem(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodySmall,
-                        color = sdkOnSurfaceVariant
+                        color = sdkOnSurfaceVariant,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
+
+                    val mockScenario = call.responseHeaders.entries.find {
+                        it.key.equals("X-Mock-Scenario", ignoreCase = true)
+                    }?.value
+                    val isMocked = mockScenario != null ||
+                        call.responseHeaders.keys.any { it.equals("X-Mock-Source", ignoreCase = true) }
+                    if (isMocked) {
+                        Spacer(Modifier.width(8.dp))
+                        Surface(
+                            color = colorStatusSuccess.copy(alpha = 0.18f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = mockScenario?.let { "MOCK" } ?: "MOCK",
+                                color = colorStatusSuccess,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
                 }
             }
 

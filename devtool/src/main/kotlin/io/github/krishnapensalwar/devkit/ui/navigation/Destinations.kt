@@ -15,6 +15,13 @@ internal sealed interface Destination {
         val initialStatus: Int
     ) : Destination
     data class NetworkDetail(val callId: Long) : Destination
+    data class MockScenarios(
+        val url: String,
+        val method: String,
+        val initialBody: String,
+        val initialStatus: Int,
+        val headersJson: String
+    ) : Destination
 }
 
 internal fun NavController.navigateTo(destination: Destination) {
@@ -41,6 +48,15 @@ internal fun NavController.navigateTo(destination: Destination) {
         }
 
         is Destination.NetworkDetail -> navigate("network_detail/${destination.callId}")
+
+        is Destination.MockScenarios -> {
+            currentBackStackEntry?.savedStateHandle?.set("mock_url", destination.url)
+            currentBackStackEntry?.savedStateHandle?.set("mock_method", destination.method)
+            currentBackStackEntry?.savedStateHandle?.set("mock_body", destination.initialBody)
+            currentBackStackEntry?.savedStateHandle?.set("mock_status", destination.initialStatus)
+            currentBackStackEntry?.savedStateHandle?.set("mock_headers", destination.headersJson)
+            navigate("mock_scenarios")
+        }
     }
 }
 

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,8 +30,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import io.github.krishnapensalwar.devkit.mock.scenario.MockApiUiState
+import io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioCatalog
+import io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 import androidx.navigation.NavController
+import io.github.krishnapensalwar.devkit.ui.navigation.Destination
+import io.github.krishnapensalwar.devkit.ui.navigation.navigateTo
 import io.github.krishnapensalwar.devkit.ui.navigation.pop
 import io.github.krishnapensalwar.devkit.ui.theme.*
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +59,16 @@ internal fun NetworkDetailScreen(
     val scope = rememberCoroutineScope()
 
     val mockSource = call.responseHeaders.entries.find { it.key.equals("X-Mock-Source", ignoreCase = true) }?.value
-    val isMocked = mockSource != null
+    val mockScenarioHeader = call.responseHeaders.entries.find { it.key.equals("X-Mock-Scenario", ignoreCase = true) }?.value
+    val isMocked = mockSource != null || call.exception?.startsWith("DevTool mock") == true ||
+        (call.exception?.contains("DevTool mock") == true)
+
+    val mockState by MockScenarioRepository.observe(call.url, call.method)
+        .collectAsState(initial = MockApiUiState())
+    val activeBuiltIn = MockScenarioCatalog.findByKey(mockState.activeScenarioKey.orEmpty())
+    val activeCustom = mockState.customScenarios.find { it.key == mockState.activeScenarioKey }
+    val activeName = activeBuiltIn?.title ?: activeCustom?.name ?: mockScenarioHeader
+    val activeStatus = activeBuiltIn?.statusCode ?: activeCustom?.statusCode ?: call.statusCode.takeIf { it > 0 }
 
     Scaffold(
         modifier = modifier,
@@ -166,82 +181,128 @@ internal fun NetworkDetailScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isMocked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    containerColor = if (isMocked || mockState.activeScenarioKey != null)
+                        Color(0xFF13261C) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isMocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = if (isMocked) "MOCKED" else "LIVE SERVER",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isMocked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.surface
-                                )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            if (isMocked || mockState.activeScenarioKey != null)
+                                                Color(0xFF4ADE80) else MaterialTheme.colorScheme.outline
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (isMocked || mockState.activeScenarioKey != null) "MOCKED" else "LIVE SERVER",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isMocked || mockState.activeScenarioKey != null) Color.Black else MaterialTheme.colorScheme.surface
+                                    )
+                                }
+                                if (mockSource != null) {
+                                    Text(
+                                        text = "via $mockSource",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                            if (isMocked) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (activeName != null) {
                                 Text(
-                                    text = "via $mockSource",
-                                    fontSize = 11.sp,
+                                    text = "Scenario: $activeName",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = sdkOnSurface
+                                )
+                                Text(
+                                    text = "Status: ${activeStatus ?: "—"}",
+                                    fontSize = 12.sp,
+                                    color = sdkOnSurfaceVariant
+                                )
+                            } else {
+                                Text(
+                                    text = if (isMocked) "This response was served locally from database." else "This response came directly from the network server.",
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (isMocked) "This response was served locally from database." else "This response came directly from the network server.",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
-                    Button(
-                        onClick = {
-                            scope.launch(Dispatchers.IO) {
-                                try {
-                                    val headersJson = org.json.JSONObject(call.responseHeaders).toString()
-                                    io.github.krishnapensalwar.devkit.cache.CacheManager.saveWithHeadersJson(
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = {
+                                val headersJson = org.json.JSONObject(call.responseHeaders).toString()
+                                navController.navigateTo(
+                                    Destination.MockScenarios(
                                         url = call.url,
                                         method = call.method,
-                                        status = if (call.statusCode != 0) call.statusCode else 200,
-                                        headersJson = headersJson,
-                                        body = call.responseBody ?: ""
+                                        initialBody = call.responseBody.orEmpty(),
+                                        initialStatus = if (call.statusCode != 0) call.statusCode else 200,
+                                        headersJson = headersJson
                                     )
-                                    Log.d("NetworkInterceptor", "[NetworkDetailScreen] Saved mock response override for ${call.url}")
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Response override saved successfully", Toast.LENGTH_SHORT).show()
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("NetworkInterceptor", "[NetworkDetailScreen] Error overriding response: ${e.message}")
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Failed to save override: ${e.message}", Toast.LENGTH_SHORT).show()
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4ADE80), contentColor = Color.Black),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Scenarios", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = {
+                                scope.launch(Dispatchers.IO) {
+                                    try {
+                                        val headersJson = org.json.JSONObject(call.responseHeaders).toString()
+                                        io.github.krishnapensalwar.devkit.cache.CacheManager.saveWithHeadersJson(
+                                            url = call.url,
+                                            method = call.method,
+                                            status = if (call.statusCode != 0) call.statusCode else 200,
+                                            headersJson = headersJson,
+                                            body = call.responseBody ?: ""
+                                        )
+                                        Log.d("NetworkInterceptor", "[NetworkDetailScreen] Saved mock response override for ${call.url}")
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Response override saved successfully", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e("NetworkInterceptor", "[NetworkDetailScreen] Error overriding response: ${e.message}")
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Failed to save override: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isMocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        Text(
-                            text = "Override Response",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isMocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Override",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

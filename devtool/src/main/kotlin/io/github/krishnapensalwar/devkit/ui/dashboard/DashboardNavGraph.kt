@@ -17,6 +17,7 @@ import io.github.krishnapensalwar.devkit.ui.CacheScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.crash.CrashScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.device.DeviceInfoScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.AnalyticsScreen
+import io.github.krishnapensalwar.devkit.ui.dashboard.network.MockScenarioScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.NetworkDetailScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.NetworkListScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.ResponseEditorScreen
@@ -82,6 +83,25 @@ internal fun DashboardNavGraph(
                         DevToolSdk.updateCachedResponse(url, method, updatedBody, updatedStatus)
                     }
                 }
+            )
+        }
+
+        composable("mock_scenarios") {
+            val previous = navController.previousBackStackEntry
+            val url = previous?.savedStateHandle?.get<String>("mock_url").orEmpty()
+            val method = previous?.savedStateHandle?.get<String>("mock_method").orEmpty()
+            val body = previous?.savedStateHandle?.get<String>("mock_body").orEmpty()
+            val status = previous?.savedStateHandle?.get<Int>("mock_status") ?: 200
+            val headers = previous?.savedStateHandle?.get<String>("mock_headers").orEmpty()
+
+            MockScenarioScreen(
+                url = url,
+                method = method,
+                capturedBody = body,
+                capturedStatus = status,
+                capturedHeadersJson = headers,
+                navController = navController,
+                modifier = Modifier.fillMaxSize()
             )
         }
 

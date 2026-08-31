@@ -59,10 +59,11 @@ internal object DevToolSdk {
         // Initialize mock manager and cache manager
         MockManager.init(database!!, application)
         io.github.krishnapensalwar.devkit.cache.CacheManager.init(database!!)
+        io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.init(database!!)
 
         val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val isEnabled = prefs.getBoolean(KEY_MOCKING_ENABLED, false)
-        setMockingEnabled(isEnabled)
+        setMockingEnabled(isEnabled && io.github.krishnapensalwar.devkit.mock.MockSafety.debugBuild)
     }
 
     /**
@@ -71,14 +72,15 @@ internal object DevToolSdk {
      * @param enabled `true` to enable mocking; `false` to disable.
      */
     fun setMockingEnabled(enabled: Boolean) {
+        val safeEnabled = enabled && io.github.krishnapensalwar.devkit.mock.MockSafety.debugBuild
         appContext?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             ?.edit()
-            ?.putBoolean(KEY_MOCKING_ENABLED, enabled)
+            ?.putBoolean(KEY_MOCKING_ENABLED, safeEnabled)
             ?.apply()
 
-        MockManager.setMockingEnabled(enabled)
+        MockManager.setMockingEnabled(safeEnabled)
         // Update plugin config if bound
-        currentConfig?.mockingEnabled = enabled
+        currentConfig?.mockingEnabled = safeEnabled
     }
 
     /**
