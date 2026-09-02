@@ -49,6 +49,27 @@ internal object MockScenarioEngine {
                 body = "",
                 headers = jsonHeaders()
             )
+            MockScenarioType.EMPTY_DATA -> httpPlan(
+                type = type,
+                name = builtIn?.title ?: "Empty Data",
+                status = 200,
+                body = emptyGraphQlData(),
+                headers = jsonHeaders()
+            )
+            MockScenarioType.GRAPHQL_ERROR -> httpPlan(
+                type = type,
+                name = builtIn?.title ?: "GraphQL Error",
+                status = 200,
+                body = graphQlErrorBody(),
+                headers = jsonHeaders()
+            )
+            MockScenarioType.GRAPHQL_PARTIAL -> httpPlan(
+                type = type,
+                name = builtIn?.title ?: "Partial Data + Error",
+                status = 200,
+                body = graphQlPartialBody(successBody),
+                headers = jsonHeaders()
+            )
             MockScenarioType.HTTP_400,
             MockScenarioType.HTTP_401,
             MockScenarioType.HTTP_403,
@@ -129,6 +150,35 @@ internal object MockScenarioEngine {
     fun defaultErrorBody(status: Int): String {
         val label = MockScenarioCatalog.statusMessage(status)
         return """{"error":"$label","status":$status,"mocked":true}"""
+    }
+
+    fun emptyGraphQlData(): String = """{"data":{}}"""
+
+    fun graphQlErrorBody(message: String = "User not found"): String =
+        """{"data":null,"errors":[{"message":"$message"}]}"""
+
+    fun graphQlPartialBody(captured: String?): String {
+        val fallback = """{"data":{"user":{"id":"123"},"orders":null},"errors":[{"message":"Orders service unavailable"}]}"""
+        val raw = captured?.trim().orEmpty()
+        if (raw.isEmpty()) return fallback
+        return try {
+            val root = org.json.JSONObject(raw)
+            val data = root.optJSONObject("data") ?: return fallback
+            val keys = ArrayList<String>()
+            val iterator = data.keys()
+            while (iterator.hasNext()) keys.add(iterator.next())
+            if (keys.isEmpty()) return fallback
+            val last = keys.last()
+            data.put(last, org.json.JSONObject.NULL)
+            if (!root.has("errors")) {
+                val errors = org.json.JSONArray()
+                errors.put(org.json.JSONObject().put("message", "Orders service unavailable"))
+                root.put("errors", errors)
+            }
+            root.toString()
+        } catch (_: Exception) {
+            fallback
+        }
     }
 
     fun activateExclusive(currentKey: String?, selectedKey: String): String? {

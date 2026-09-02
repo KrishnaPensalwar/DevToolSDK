@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.mock.scenario.MockApiUiState
 import io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioCatalog
 import io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository
@@ -63,7 +64,10 @@ internal fun NetworkDetailScreen(
     val isMocked = mockSource != null || call.exception?.startsWith("DevTool mock") == true ||
         (call.exception?.contains("DevTool mock") == true)
 
-    val mockState by MockScenarioRepository.observe(call.url, call.method)
+    val identity = remember(call.url, call.method, call.requestBody) {
+        RequestIdentity.parse(call.url, call.method, call.requestBody)
+    }
+    val mockState by MockScenarioRepository.observe(identity)
         .collectAsState(initial = MockApiUiState())
     val activeBuiltIn = MockScenarioCatalog.findByKey(mockState.activeScenarioKey.orEmpty())
     val activeCustom = mockState.customScenarios.find { it.key == mockState.activeScenarioKey }
@@ -255,7 +259,8 @@ internal fun NetworkDetailScreen(
                                         method = call.method,
                                         initialBody = call.responseBody.orEmpty(),
                                         initialStatus = if (call.statusCode != 0) call.statusCode else 200,
-                                        headersJson = headersJson
+                                        headersJson = headersJson,
+                                        requestBody = call.requestBody.orEmpty()
                                     )
                                 )
                             },

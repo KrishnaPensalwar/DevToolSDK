@@ -94,27 +94,39 @@ internal fun MockScenarioScreen(
     capturedBody: String,
     capturedStatus: Int,
     capturedHeadersJson: String,
+    requestBody: String,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val state by MockScenarioRepository.observe(url, method).collectAsState(initial = MockApiUiState())
+    val identity = remember(url, method, requestBody) {
+        io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(url, method, requestBody)
+    }
+    val state by MockScenarioRepository.observe(identity).collectAsState(initial = MockApiUiState())
 
     var customEditor by remember { mutableStateOf<CustomScenarioData?>(null) }
     var showCreate by remember { mutableStateOf(false) }
     var customDelayText by remember { mutableStateOf("") }
 
-    LaunchedEffect(url, method, capturedBody) {
+    LaunchedEffect(identity.identityKey, capturedBody) {
         withContext(Dispatchers.IO) {
             if (capturedBody.isNotBlank()) {
-                CacheManager.saveWithHeadersJson(
-                    url = url,
-                    method = method,
+                MockScenarioRepository.saveSnapshot(
+                    identity = identity,
                     status = if (capturedStatus in 100..599) capturedStatus else 200,
                     headersJson = capturedHeadersJson.ifBlank { "{}" },
                     body = capturedBody
                 )
+                if (!identity.isGraphQl) {
+                    CacheManager.saveWithHeadersJson(
+                        url = url,
+                        method = method,
+                        status = if (capturedStatus in 100..599) capturedStatus else 200,
+                        headersJson = capturedHeadersJson.ifBlank { "{}" },
+                        body = capturedBody
+                    )
+                }
             }
         }
     }
@@ -147,9 +159,17 @@ internal fun MockScenarioScreen(
                         .weight(1f)
                         .padding(horizontal = 12.dp)
                 ) {
-                    Text("Mock Scenarios", fontWeight = FontWeight.Bold, color = sdkOnSurface)
                     Text(
-                        text = "$method  $url",
+                        text = if (identity.isGraphQl) "GraphQL Scenarios" else "Mock Scenarios",
+                        fontWeight = FontWeight.Bold,
+                        color = sdkOnSurface
+                    )
+                    Text(
+                        text = if (identity.isGraphQl) {
+                            "${identity.graphQlOperationType}  ${identity.displayName}"
+                        } else {
+                            "$method  $url"
+                        },
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
                         color = sdkOnSurfaceVariant,
@@ -205,7 +225,7 @@ internal fun MockScenarioScreen(
                                 checked = state.enabled,
                                 onCheckedChange = { enabled ->
                                     scope.launch(Dispatchers.IO) {
-                                        MockScenarioRepository.setApiEnabled(url, method, enabled)
+                                        MockScenarioRepository.setApiEnabled(identity, enabled)
                                     }
                                 }
                             )
@@ -225,7 +245,7 @@ internal fun MockScenarioScreen(
                 }
             }
 
-            MockScenarioCatalog.grouped.forEach { (group, scenarios) ->
+            MockScenarioCatalog.groupedFor(identity.isGraphQl).forEach { (group, scenarios) ->
                 item {
                     ScenarioGroupHeader(MockScenarioCatalog.groupLabel(group))
                 }
@@ -239,7 +259,7 @@ internal fun MockScenarioScreen(
                             selected = selected,
                             onClick = {
                                 scope.launch(Dispatchers.IO) {
-                                    MockScenarioRepository.activateScenario(url, method, scenario.key)
+                                    MockScenarioRepository.activateScenario(identity, scenario.key)
                                 }
                             }
                         )
@@ -250,14 +270,14 @@ internal fun MockScenarioScreen(
                                 onCustomTextChange = { customDelayText = it.filter { ch -> ch.isDigit() }.take(6) },
                                 onSelect = { delay ->
                                     scope.launch(Dispatchers.IO) {
-                                        MockScenarioRepository.setSlowDelay(url, method, delay)
+                                        MockScenarioRepository.setSlowDelay(identity, delay)
                                     }
                                 },
                                 onApplyCustom = {
                                     val value = customDelayText.toLongOrNull()
                                     if (value != null) {
                                         scope.launch(Dispatchers.IO) {
-                                            MockScenarioRepository.setSlowDelay(url, method, value)
+                                            MockScenarioRepository.setSlowDelay(identity, value)
                                         }
                                     }
                                 }
@@ -287,13 +307,13 @@ internal fun MockScenarioScreen(
                     selected = selected,
                     onSelect = {
                         scope.launch(Dispatchers.IO) {
-                            MockScenarioRepository.activateScenario(url, method, custom.key)
+                            MockScenarioRepository.activateScenario(identity, custom.key)
                         }
                     },
                     onEdit = { customEditor = custom },
                     onDelete = {
                         scope.launch(Dispatchers.IO) {
-                            MockScenarioRepository.deleteCustom(custom.id, url, method)
+                            MockScenarioRepository.deleteCustom(custom.id, identity)
                             withContext(Dispatchers.Main) {
                                 Toast.makeText(context, "Deleted ${custom.name}", Toast.LENGTH_SHORT).show()
                             }
@@ -312,8 +332,11 @@ internal fun MockScenarioScreen(
                 id = 0,
                 name = "",
                 description = "",
-                statusCode = 202,
-                body = capturedBody.ifBlank { """{"status":"pending"}""" },
+                statusCode = if (identity.isGraphQl) 200 else 202,
+                body = capturedBody.ifBlank {
+                    if (identity.isGraphQl) """{"data":{"status":"pending"}}"""
+                    else """{"status":"pending"}"""
+                },
                 headers = mapOf("Content-Type" to "application/json"),
                 delayMs = 0
             ),
@@ -321,8 +344,7 @@ internal fun MockScenarioScreen(
             onSave = { data ->
                 scope.launch(Dispatchers.IO) {
                     val id = MockScenarioRepository.insertCustom(
-                        url = url,
-                        method = method,
+                        identity = identity,
                         name = data.name,
                         description = data.description,
                         statusCode = data.statusCode,
@@ -331,7 +353,7 @@ internal fun MockScenarioScreen(
                         delayMs = data.delayMs
                     )
                     if (id > 0) {
-                        MockScenarioRepository.activateScenario(url, method, "custom:$id")
+                        MockScenarioRepository.activateScenario(identity, "custom:$id")
                     }
                     withContext(Dispatchers.Main) { showCreate = false }
                 }
@@ -345,7 +367,7 @@ internal fun MockScenarioScreen(
             onDismiss = { customEditor = null },
             onSave = { data ->
                 scope.launch(Dispatchers.IO) {
-                    MockScenarioRepository.updateCustom(data.copy(id = editing.id), url, method)
+                    MockScenarioRepository.updateCustom(data.copy(id = editing.id), identity)
                     withContext(Dispatchers.Main) { customEditor = null }
                 }
             }

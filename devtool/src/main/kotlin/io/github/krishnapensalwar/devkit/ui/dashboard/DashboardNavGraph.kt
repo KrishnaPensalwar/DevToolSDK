@@ -93,6 +93,7 @@ internal fun DashboardNavGraph(
             val body = previous?.savedStateHandle?.get<String>("mock_body").orEmpty()
             val status = previous?.savedStateHandle?.get<Int>("mock_status") ?: 200
             val headers = previous?.savedStateHandle?.get<String>("mock_headers").orEmpty()
+            val requestBody = previous?.savedStateHandle?.get<String>("mock_request_body").orEmpty()
 
             MockScenarioScreen(
                 url = url,
@@ -100,6 +101,7 @@ internal fun DashboardNavGraph(
                 capturedBody = body,
                 capturedStatus = status,
                 capturedHeadersJson = headers,
+                requestBody = requestBody,
                 navController = navController,
                 modifier = Modifier.fillMaxSize()
             )

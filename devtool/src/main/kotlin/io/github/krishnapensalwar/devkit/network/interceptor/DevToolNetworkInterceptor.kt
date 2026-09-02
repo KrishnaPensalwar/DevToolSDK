@@ -52,7 +52,7 @@ class DevToolNetworkInterceptor : Interceptor {
 
         if (MockManager.isMockingEnabled()) {
             Log.d(TAG, "[DevToolNetworkInterceptor] Mocking is enabled. Resolving mock for URL: ${request.url}")
-            when (val resolution = MockManager.resolve(request)) {
+            when (val resolution = MockManager.resolve(request, requestBodyString)) {
                 MockResolution.PassThrough -> {
                     Log.d(TAG, "[DevToolNetworkInterceptor] API-level mock disabled. Passing through to network.")
                 }
@@ -104,7 +104,7 @@ class DevToolNetworkInterceptor : Interceptor {
         val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
         Log.d(TAG, "[DevToolNetworkInterceptor] Response received in ${duration}ms. Code=${response.code}, Message=${response.message}, Mocked=$isMocked")
 
-        if (MockManager.isMockingEnabled() && !isMocked && response.isSuccessful) {
+        if (!isMocked && response.isSuccessful) {
             try {
                 val responseBodyCopy = response.peekBody(Long.MAX_VALUE).string()
                 val headersJson = JSONObject().apply {
@@ -112,16 +112,26 @@ class DevToolNetworkInterceptor : Interceptor {
                         put(name, response.headers.values(name).joinToString(","))
                     }
                 }.toString()
+                val identity = MockManager.identityFor(request, requestBodyString)
                 scope.launch {
                     try {
-                        CacheManager.saveWithHeadersJson(
-                            url = request.url.toString(),
-                            method = request.method,
-                            status = response.code,
-                            headersJson = headersJson,
-                            body = responseBodyCopy
-                        )
-                        Log.d(TAG, "[DevToolNetworkInterceptor] Saved response to cache database successfully.")
+                        if (identity.isGraphQl) {
+                            io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.saveSnapshot(
+                                identity = identity,
+                                status = response.code,
+                                headersJson = headersJson,
+                                body = responseBodyCopy
+                            )
+                        } else if (MockManager.isMockingEnabled()) {
+                            CacheManager.saveWithHeadersJson(
+                                url = request.url.toString(),
+                                method = request.method,
+                                status = response.code,
+                                headersJson = headersJson,
+                                body = responseBodyCopy
+                            )
+                        }
+                        Log.d(TAG, "[DevToolNetworkInterceptor] Saved response snapshot successfully.")
                     } catch (cacheErr: Exception) {
                         Log.e(TAG, "[DevToolNetworkInterceptor] Error inserting response to cache: ${cacheErr.message}")
                     }

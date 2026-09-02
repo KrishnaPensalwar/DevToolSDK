@@ -12,6 +12,7 @@ import io.ktor.client.request.HttpRequest
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
+import io.ktor.client.statement.HttpReceivePipeline
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
@@ -23,11 +24,11 @@ import io.ktor.http.headersOf
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import io.ktor.client.statement.bodyAsText
 
 /**
  * Configuration options for [DevToolPlugin].
@@ -86,6 +87,7 @@ data class MockResponse(
  */
 val StartTimeKey = io.ktor.util.AttributeKey<Long>("DevToolStartTime")
 
+@OptIn(DelicateCoroutinesApi::class)
 val DevToolPlugin = createClientPlugin(
     name = "DevToolPlugin",
     createConfiguration = ::KtorDevToolConfig
@@ -97,6 +99,16 @@ val DevToolPlugin = createClientPlugin(
 
     DevToolSdk.bind(config, ktorClient)
 
+    // Snapshot live body before observers / ContentNegotiation consume the channel.
+    ktorClient.receivePipeline.intercept(HttpReceivePipeline.After) { response ->
+        val next = try {
+            response.snapshotBodyForApp()
+        } catch (_: Throwable) {
+            response
+        }
+        proceedWith(next)
+    }
+
     onRequest { request, _ ->
         request.attributes.put(StartTimeKey, System.nanoTime())
         config.requestModifier(request)
@@ -105,29 +117,20 @@ val DevToolPlugin = createClientPlugin(
     onResponse { response ->
         config.responseObserver(response)
         config.recorder?.invoke(response.call.request, response)
-        
-        // Root Cause Fix: Read body within the hook's scope to avoid "Parent job is completed"
-        // We only record if mocking is DISABLED (to capture real traffic for future mocking)
-        if (!config.mockingEnabled) {
-            try {
-                // Read body synchronously while the response job is still active
-                val bodyText = response.bodyAsText()
-                
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        io.github.krishnapensalwar.devkit.cache.CacheManager.save(
-                            url = response.call.request.url.toString(),
-                            method = response.call.request.method.value,
-                            status = response.status.value,
-                            headers = response.headers,
-                            body = bodyText
-                        )
-                    } catch (e: Exception) {
-                        // ignore cache errors
-                    }
+
+        if (!MockManager.isMockingEnabled()) {
+            val bodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey) ?: return@onResponse
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    io.github.krishnapensalwar.devkit.cache.CacheManager.save(
+                        url = response.call.request.url.toString(),
+                        method = response.call.request.method.value,
+                        status = response.status.value,
+                        headers = response.headers,
+                        body = bodyText
+                    )
+                } catch (_: Exception) {
                 }
-            } catch (e: Exception) {
-                // ignore if body cannot be read (e.g. already consumed or connection closed)
             }
         }
     }
@@ -148,7 +151,14 @@ val DevToolPlugin = createClientPlugin(
             )
         }
 
-        when (val decision = MockManager.decide(request.url.toString(), request.method.value)) {
+        when (val decision = MockManager.decide(
+            io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+                url = request.url.toString(),
+                method = request.method.value,
+                requestBody = null,
+                contentType = request.headers["Content-Type"]
+            )
+        )) {
             MockDecision.PassThrough -> return@on proceed(request)
             is MockDecision.Serve -> {
                 if (decision.plan.delayMs > 0) {

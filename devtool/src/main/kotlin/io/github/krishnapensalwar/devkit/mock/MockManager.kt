@@ -64,31 +64,47 @@ internal object MockManager {
     fun customResolver(): ((HttpRequestBuilder) -> MockResponse?)? = customResolver
 
     fun resolveOkHttp(request: Request): Response? {
-        return when (val resolution = resolve(request)) {
+        return when (val resolution = resolve(request, null)) {
             is MockResolution.Http -> resolution.response
             else -> null
         }
     }
 
-    fun resolve(request: Request): MockResolution {
-        return when (val decision = decide(request.url.toString(), request.method)) {
+    fun resolve(request: Request, requestBody: String? = null): MockResolution {
+        val identity = identityFor(request, requestBody)
+        return when (val decision = decide(identity)) {
             MockDecision.PassThrough -> MockResolution.PassThrough
             MockDecision.Missing -> MockResolution.Missing
             is MockDecision.Serve -> decision.plan.toResolution(request)
         }
     }
 
-    fun decide(url: String, method: String): MockDecision {
+    fun identityFor(request: Request, requestBody: String? = null): io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity {
+        val params = buildMap {
+            for (i in 0 until request.url.querySize) {
+                put(request.url.queryParameterName(i), request.url.queryParameterValue(i).orEmpty())
+            }
+        }
+        return io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+            url = request.url.toString(),
+            method = request.method,
+            requestBody = requestBody,
+            contentType = request.header("Content-Type"),
+            queryParams = params
+        )
+    }
+
+    fun decide(identity: io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity): MockDecision {
         if (!isMockingEnabled()) return MockDecision.PassThrough
         val database = getDbOrNull() ?: return MockDecision.Missing
 
         return runBlocking(Dispatchers.IO) {
-            val config = MockScenarioRepository.getConfig(url, method)
+            val config = MockScenarioRepository.getConfig(identity)
             if (config != null && !config.enabled) {
                 return@runBlocking MockDecision.PassThrough
             }
 
-            val captured = loadCaptured(database, url, method)
+            val captured = loadCaptured(database, identity, config)
             val activeKey = config?.activeScenarioKey
             if (!activeKey.isNullOrBlank()) {
                 val customId = parseCustomId(activeKey)
@@ -104,7 +120,11 @@ internal object MockManager {
                 }
             }
 
-            val mockEntity = database.mockDao().findMock(url, method)
+            if (identity.isGraphQl) {
+                return@runBlocking MockDecision.PassThrough
+            }
+
+            val mockEntity = database.mockDao().findMock(identity.url, identity.method)
             if (mockEntity != null && mockEntity.enabled) {
                 val headers = MockScenarioRepository.jsonToHeaders(mockEntity.headers ?: "")
                 return@runBlocking MockDecision.Serve(
@@ -121,7 +141,7 @@ internal object MockManager {
                 )
             }
 
-            val cachedEntity = database.cachedResponseDao().get(url, method)
+            val cachedEntity = database.cachedResponseDao().get(identity.url, identity.method)
             if (cachedEntity != null) {
                 val headers = MockScenarioRepository.jsonToHeaders(cachedEntity.headersJson)
                 return@runBlocking MockDecision.Serve(
@@ -144,17 +164,25 @@ internal object MockManager {
 
     private suspend fun loadCaptured(
         database: DevToolDatabase,
-        url: String,
-        method: String
+        identity: io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity,
+        config: io.github.krishnapensalwar.devkit.internal.database.MockApiConfigEntity?
     ): CapturedResponse? {
-        database.cachedResponseDao().get(url, method)?.let {
+        config?.snapshotBody?.let { body ->
+            return CapturedResponse(
+                status = config.snapshotStatus,
+                body = body,
+                headers = MockScenarioRepository.jsonToHeaders(config.snapshotHeadersJson.orEmpty())
+            )
+        }
+        if (identity.isGraphQl) return null
+        database.cachedResponseDao().get(identity.url, identity.method)?.let {
             return CapturedResponse(
                 status = it.status,
                 body = it.body,
                 headers = MockScenarioRepository.jsonToHeaders(it.headersJson)
             )
         }
-        database.mockDao().findMock(url, method)?.let {
+        database.mockDao().findMock(identity.url, identity.method)?.let {
             return CapturedResponse(
                 status = 200,
                 body = it.responseBody,

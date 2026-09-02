@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.core.utils.ApiNameExtractor
+import io.github.krishnapensalwar.devkit.mock.identity.GraphQlOperationType
+import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.components.StatusDot
@@ -364,15 +366,84 @@ internal fun NetworkListScreen(
                 Text("No network activity", color = sdkOnSurfaceVariant)
             }
         } else {
+            val identities = filteredCalls.map { call ->
+                call to RequestIdentity.parse(call.url, call.method, call.requestBody)
+            }
+            val graphQlCalls = identities.filter { it.second.isGraphQl }
+            val restCalls = identities.filter { !it.second.isGraphQl }
+            val graphQlByEndpoint = graphQlCalls.groupBy { it.second.endpoint }
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
-                items(filteredCalls) { call ->
-                    NetworkCallItem(
-                        call = call,
-                        onClick = { navController.navigateTo(Destination.NetworkDetail(call.id)) }
-                    )
+                if (graphQlCalls.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "GRAPHQL",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp,
+                            color = sdkOnSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                    }
+                    graphQlByEndpoint.forEach { (endpoint, calls) ->
+                        item {
+                            Text(
+                                text = "${calls.first().first.method} $endpoint",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = sdkOnSurface,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                            )
+                        }
+                        enumValues<GraphQlOperationType>().forEach { type ->
+                            val typed = calls.filter { it.second.graphQlOperationType == type }
+                            if (typed.isNotEmpty()) {
+                                item {
+                                    Text(
+                                        text = when (type) {
+                                            GraphQlOperationType.QUERY -> "Queries"
+                                            GraphQlOperationType.MUTATION -> "Mutations"
+                                            GraphQlOperationType.SUBSCRIPTION -> "Subscriptions"
+                                        },
+                                        fontSize = 11.sp,
+                                        color = sdkOnSurfaceVariant,
+                                        modifier = Modifier.padding(start = 28.dp, top = 6.dp, bottom = 2.dp)
+                                    )
+                                }
+                                items(typed) { (call, identity) ->
+                                    NetworkCallItem(
+                                        call = call,
+                                        identity = identity,
+                                        onClick = { navController.navigateTo(Destination.NetworkDetail(call.id)) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (restCalls.isNotEmpty()) {
+                    if (graphQlCalls.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "REST",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.2.sp,
+                                color = sdkOnSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                    items(restCalls) { (call, identity) ->
+                        NetworkCallItem(
+                            call = call,
+                            identity = identity,
+                            onClick = { navController.navigateTo(Destination.NetworkDetail(call.id)) }
+                        )
+                    }
                 }
             }
         }
@@ -382,7 +453,8 @@ internal fun NetworkListScreen(
 @Composable
 internal fun NetworkCallItem(
     call: NetworkCall,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    identity: RequestIdentity = RequestIdentity.parse(call.url, call.method, call.requestBody)
 ) {
     val statusColor = when {
         call.statusCode in 200..299 -> colorStatusSuccess
@@ -411,7 +483,7 @@ internal fun NetworkCallItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = ApiNameExtractor.extract(call.url),
+                    text = if (identity.isGraphQl) identity.displayName else ApiNameExtractor.extract(call.url),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -439,6 +511,22 @@ internal fun NetworkCallItem(
                     }
 
                     Spacer(Modifier.width(8.dp))
+
+                    if (identity.isGraphQl) {
+                        Surface(
+                            color = methodPatch.copy(alpha = 0.18f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = identity.graphQlOperationType?.name ?: "GQL",
+                                color = methodPatch,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                    }
 
                     Text(
                         text = call.host,

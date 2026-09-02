@@ -6,10 +6,11 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "mock_custom_scenarios",
-    indices = [Index(value = ["url", "method"])]
+    indices = [Index(value = ["identityKey"])]
 )
 internal data class MockCustomScenarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val identityKey: String,
     val url: String,
     val method: String,
     val name: String,

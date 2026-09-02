@@ -20,7 +20,8 @@ internal sealed interface Destination {
         val method: String,
         val initialBody: String,
         val initialStatus: Int,
-        val headersJson: String
+        val headersJson: String,
+        val requestBody: String = ""
     ) : Destination
 }
 
@@ -55,6 +56,7 @@ internal fun NavController.navigateTo(destination: Destination) {
             currentBackStackEntry?.savedStateHandle?.set("mock_body", destination.initialBody)
             currentBackStackEntry?.savedStateHandle?.set("mock_status", destination.initialStatus)
             currentBackStackEntry?.savedStateHandle?.set("mock_headers", destination.headersJson)
+            currentBackStackEntry?.savedStateHandle?.set("mock_request_body", destination.requestBody)
             navigate("mock_scenarios")
         }
     }

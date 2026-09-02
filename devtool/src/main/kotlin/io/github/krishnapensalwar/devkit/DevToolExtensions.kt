@@ -1,14 +1,13 @@
 package io.github.krishnapensalwar.devkit
 
+import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
+import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
-import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.plugins.observer.ResponseObserver
-import io.ktor.client.statement.bodyAsText
-import io.github.krishnapensalwar.devkit.network.model.NetworkCall
-import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
-import kotlinx.coroutines.GlobalScope
+import io.ktor.client.request.HttpRequestBuilder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 /**
@@ -41,12 +40,9 @@ fun HttpClientConfig<*>.withDevTool(configure: KtorDevToolConfig.() -> Unit = {}
             }
 
             val requestBodyText = getRequestBodyString(request.content)
-            
-            val responseBodyText = try {
-                response.bodyAsText()
-            } catch (e: Exception) {
-                "(error reading response body)"
-            }
+
+            val responseBodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey)
+                ?: "(body omitted)"
 
             val networkCall = NetworkCall(
                 url = request.url.toString(),
