@@ -60,6 +60,7 @@ import io.github.krishnapensalwar.devkit.core.utils.ApiNameExtractor
 import io.github.krishnapensalwar.devkit.mock.identity.GraphQlOperationType
 import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
+import io.github.krishnapensalwar.devkit.network.model.matchesQuery
 import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.components.StatusDot
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.components.NetworkSummaryBadge
@@ -106,11 +107,11 @@ internal fun NetworkListScreen(
     }
 
     val filteredCalls = calls.filter { call ->
+        val identity = RequestIdentity.parse(call.url, call.method, call.requestBody)
         val matchesQuery = searchQuery.isEmpty() ||
-                call.url.contains(searchQuery, ignoreCase = true) ||
-                call.endpoint.contains(searchQuery, ignoreCase = true)
+            call.matchesQuery(searchQuery, identity)
         val matchesMethod = selectedMethods.isEmpty() ||
-                selectedMethods.contains(call.method.uppercase())
+            selectedMethods.contains(call.method.uppercase())
         val matchesStatus = selectedStatuses.isEmpty() || selectedStatuses.any { status ->
             when (status) {
                 "Success" -> call.statusCode in 200..299

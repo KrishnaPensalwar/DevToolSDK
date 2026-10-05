@@ -15,7 +15,7 @@ import io.github.krishnapensalwar.devkit.network.database.NetworkEntity
         MockApiConfigEntity::class,
         MockCustomScenarioEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 internal abstract class DevToolDatabase : RoomDatabase() {

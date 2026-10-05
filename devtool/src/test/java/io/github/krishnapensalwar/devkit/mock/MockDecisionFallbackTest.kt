@@ -47,8 +47,38 @@ class MockDecisionFallbackTest {
     }
 
     @Test
-    fun restIdentityIsNotGraphQl() {
-        assertTrue(!rest.isGraphQl)
-        assertTrue(gql.isGraphQl)
+    fun restPrefersEditedCacheOverStaleSnapshot() {
+        val edited = CapturedResponse(200, """{"edited":true}""", emptyMap())
+        val snapshot = CapturedResponse(200, """{"original":true}""", emptyMap())
+        val picked = capturedFromSources(rest, snapshot, identityCache = edited, restLegacy = null)
+        assertEquals(edited.body, picked?.body)
+    }
+
+    @Test
+    fun graphQlPrefersEditedIdentityCacheOverSnapshot() {
+        val snapshot = CapturedResponse(200, """{"data":{"user":{"id":"1"}}}""", emptyMap())
+        val edited = CapturedResponse(200, """{"data":{"user":{"id":"edited"}}}""", emptyMap())
+        val picked = capturedFromSources(gql, snapshot, identityCache = edited, restLegacy = null)
+        assertEquals(edited.body, picked?.body)
+    }
+
+    @Test
+    fun cachedOverrideWinsOverSelectedScenario() {
+        val decision = serveCachedOverride(useCachedBody = true, captured = snapshot)
+        val serve = decision as MockDecision.Serve
+        assertEquals("cache", serve.plan.scenarioKey)
+        assertEquals(snapshot.body, serve.plan.body)
+    }
+
+    @Test
+    fun scenarioModeDoesNotUseCachedOverrideHelper() {
+        assertEquals(null, serveCachedOverride(useCachedBody = false, captured = snapshot))
+    }
+
+    @Test
+    fun shouldNotSeedSnapshotWhenEditedBodyExists() {
+        org.junit.Assert.assertFalse(shouldSeedSnapshot("""{"edited":true}"""))
+        org.junit.Assert.assertTrue(shouldSeedSnapshot(null))
+        org.junit.Assert.assertTrue(shouldSeedSnapshot("  "))
     }
 }

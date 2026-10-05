@@ -13,6 +13,7 @@ internal data class MockApiUiState(
     val enabled: Boolean = true,
     val activeScenarioKey: String? = null,
     val slowDelayMs: Long = 1_000L,
+    val useCachedBody: Boolean = true,
     val customScenarios: List<CustomScenarioData> = emptyList()
 )
 
@@ -35,6 +36,7 @@ internal object MockScenarioRepository {
                 enabled = config?.enabled ?: true,
                 activeScenarioKey = config?.activeScenarioKey,
                 slowDelayMs = config?.slowDelayMs ?: 1_000L,
+                useCachedBody = config?.useCachedBody ?: true,
                 customScenarios = customs.map { it.toData() }
             )
         }
@@ -56,7 +58,61 @@ internal object MockScenarioRepository {
         val dao = dao() ?: return
         val existing = dao.getConfig(identity.identityKey)
         val nextKey = MockScenarioEngine.activateExclusive(existing?.activeScenarioKey, key)
-        dao.upsertConfig(base(identity, existing).copy(enabled = true, activeScenarioKey = nextKey))
+        dao.upsertConfig(base(identity, existing).copy(enabled = true, activeScenarioKey = nextKey, useCachedBody = false))
+    }
+
+    suspend fun setUseCachedBody(identity: RequestIdentity, useCachedBody: Boolean) {
+        val dao = dao() ?: return
+        val existing = dao.getConfig(identity.identityKey)
+        dao.upsertConfig(base(identity, existing).copy(enabled = true, useCachedBody = useCachedBody))
+    }
+
+    suspend fun saveOverrideForKey(
+        identityKey: String,
+        url: String,
+        method: String,
+        status: Int,
+        headersJson: String,
+        body: String,
+        displayName: String? = null
+    ) {
+        val dao = dao() ?: return
+        val existing = dao.getConfig(identityKey)
+        val seed = existing ?: MockApiConfigEntity(
+            identityKey = identityKey,
+            url = url,
+            method = method,
+            protocol = if (identityKey.startsWith("gql|")) "GRAPHQL" else "REST",
+            gqlOperationName = displayName
+        )
+        dao.upsertConfig(
+            seed.copy(
+                enabled = true,
+                useCachedBody = true,
+                snapshotBody = body,
+                snapshotStatus = if (status in 100..599) status else 200,
+                snapshotHeadersJson = headersJson
+            )
+        )
+    }
+
+    suspend fun saveOverride(
+        identity: RequestIdentity,
+        status: Int,
+        headersJson: String,
+        body: String
+    ) {
+        val dao = dao() ?: return
+        val existing = dao.getConfig(identity.identityKey)
+        dao.upsertConfig(
+            base(identity, existing).copy(
+                enabled = true,
+                useCachedBody = true,
+                snapshotBody = body,
+                snapshotStatus = if (status in 100..599) status else 200,
+                snapshotHeadersJson = headersJson
+            )
+        )
     }
 
     suspend fun setSlowDelay(identity: RequestIdentity, delayMs: Long) {
@@ -80,6 +136,21 @@ internal object MockScenarioRepository {
                 snapshotHeadersJson = headersJson
             )
         )
+    }
+
+    suspend fun saveSnapshotIfAbsent(
+        identity: RequestIdentity,
+        status: Int,
+        headersJson: String,
+        body: String
+    ) {
+        val existing = getConfig(identity)
+        if (!io.github.krishnapensalwar.devkit.mock.shouldSeedSnapshot(existing?.snapshotBody)) return
+        saveSnapshot(identity, status, headersJson, body)
+    }
+
+    suspend fun clearAllActiveScenarios() {
+        dao()?.clearAllActiveScenarios()
     }
 
     suspend fun insertCustom(

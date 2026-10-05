@@ -16,5 +16,6 @@ internal data class MockApiConfigEntity(
     val slowDelayMs: Long = 1_000L,
     val snapshotBody: String? = null,
     val snapshotStatus: Int = 200,
-    val snapshotHeadersJson: String? = null
+    val snapshotHeadersJson: String? = null,
+    val useCachedBody: Boolean = true
 )

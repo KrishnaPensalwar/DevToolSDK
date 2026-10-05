@@ -116,21 +116,19 @@ class DevToolNetworkInterceptor : Interceptor {
                 scope.launch {
                     try {
                         if (identity.isGraphQl) {
-                            io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.saveSnapshot(
+                            io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.saveSnapshotIfAbsent(
                                 identity = identity,
                                 status = response.code,
                                 headersJson = headersJson,
                                 body = responseBodyCopy
                             )
-                        } else if (MockManager.isMockingEnabled()) {
-                            CacheManager.saveWithHeadersJson(
-                                url = request.url.toString(),
-                                method = request.method,
-                                status = response.code,
-                                headersJson = headersJson,
-                                body = responseBodyCopy
-                            )
                         }
+                        CacheManager.saveWithHeadersJsonIfAbsent(
+                            identity = identity,
+                            status = response.code,
+                            headersJson = headersJson,
+                            body = responseBodyCopy
+                        )
                         Log.d(TAG, "[DevToolNetworkInterceptor] Saved response snapshot successfully.")
                     } catch (cacheErr: Exception) {
                         Log.e(TAG, "[DevToolNetworkInterceptor] Error inserting response to cache: ${cacheErr.message}")

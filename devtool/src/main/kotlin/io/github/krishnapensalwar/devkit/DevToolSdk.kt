@@ -6,8 +6,15 @@ import androidx.room.Room
 import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
 import io.github.krishnapensalwar.devkit.mock.MockManager
+import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
+import io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "devtool_prefs"
 private const val KEY_MOCKING_ENABLED = "mocking_enabled"
@@ -71,6 +78,7 @@ internal object DevToolSdk {
      *
      * @param enabled `true` to enable mocking; `false` to disable.
      */
+    @OptIn(DelicateCoroutinesApi::class)
     fun setMockingEnabled(enabled: Boolean) {
         val safeEnabled = enabled && io.github.krishnapensalwar.devkit.mock.MockSafety.debugBuild
         appContext?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -79,8 +87,12 @@ internal object DevToolSdk {
             ?.apply()
 
         MockManager.setMockingEnabled(safeEnabled)
-        // Update plugin config if bound
         currentConfig?.mockingEnabled = safeEnabled
+        if (!safeEnabled) {
+            GlobalScope.launch(Dispatchers.IO) {
+                MockScenarioRepository.clearAllActiveScenarios()
+            }
+        }
     }
 
     /**
@@ -90,6 +102,9 @@ internal object DevToolSdk {
      */
     fun isMockingEnabled(): Boolean =
         MockManager.isMockingEnabled()
+
+    val mockingEnabledFlow: StateFlow<Boolean>
+        get() = MockManager.mockingEnabledFlow
 
     /**
      * Sets a custom mock resolver lambda for Ktor network requests.
@@ -127,30 +142,39 @@ internal object DevToolSdk {
         url: String,
         method: String,
         newBody: String,
-        newStatus: Int? = null
+        newStatus: Int? = null,
+        requestBody: String? = null,
+        identityKey: String? = null
     ) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        android.util.Log.d("NetworkInterceptor", "[DevToolSdk] updateCachedResponse called for URL=$url, Method=$method, Status=$newStatus")
-        val dao = database?.cachedResponseDao()
-        if (dao == null) {
-            android.util.Log.e("NetworkInterceptor", "[DevToolSdk] Database or CachedResponseDao is NULL")
-            return@withContext
-        }
-        val existing = dao.get(url, method)
-        if (existing == null) {
-            android.util.Log.w("NetworkInterceptor", "[DevToolSdk] No existing cached response found for URL=$url, Method=$method. Inserting new entry.")
-            val newEntity = CachedResponseEntity(
-                url = url,
-                method = method,
-                status = newStatus ?: 200,
-                headersJson = "{}",
-                body = newBody
+        val dao = database?.cachedResponseDao() ?: return@withContext
+        val parsed = RequestIdentity.parse(url, method, requestBody)
+        val existing = identityKey?.takeIf { it.isNotBlank() }?.let { dao.getByIdentityKey(it) }
+            ?: dao.getByIdentityKey(parsed.identityKey)
+        val key = existing?.identityKey ?: parsed.identityKey
+        val status = newStatus ?: existing?.status ?: 200
+        val headersJson = existing?.headersJson ?: "{}"
+        val displayName = existing?.displayName?.ifBlank { null } ?: parsed.displayName
+        dao.insert(
+            CachedResponseEntity(
+                identityKey = key,
+                url = existing?.url ?: parsed.url,
+                method = existing?.method ?: parsed.method,
+                status = status,
+                headersJson = headersJson,
+                body = newBody,
+                displayName = displayName,
+                protocol = existing?.protocol ?: parsed.protocol.name
             )
-            dao.insert(newEntity)
-        } else {
-            val updated = existing.copy(body = newBody, status = newStatus ?: existing.status)
-            dao.insert(updated)
-            android.util.Log.d("NetworkInterceptor", "[DevToolSdk] Updated existing cached response successfully in DB.")
-        }
+        )
+        MockScenarioRepository.saveOverrideForKey(
+            identityKey = key,
+            url = existing?.url ?: parsed.url,
+            method = existing?.method ?: parsed.method,
+            status = status,
+            headersJson = headersJson,
+            body = newBody,
+            displayName = displayName
+        )
     }
 
     /**

@@ -12,7 +12,9 @@ internal sealed interface Destination {
         val url: String,
         val method: String,
         val initialBody: String,
-        val initialStatus: Int
+        val initialStatus: Int,
+        val requestBody: String = "",
+        val identityKey: String = ""
     ) : Destination
     data class NetworkDetail(val callId: Long) : Destination
     data class MockScenarios(
@@ -45,6 +47,8 @@ internal fun NavController.navigateTo(destination: Destination) {
             currentBackStackEntry?.savedStateHandle?.set("method", destination.method)
             currentBackStackEntry?.savedStateHandle?.set("initialBody", destination.initialBody)
             currentBackStackEntry?.savedStateHandle?.set("initialStatus", destination.initialStatus)
+            currentBackStackEntry?.savedStateHandle?.set("requestBody", destination.requestBody)
+            currentBackStackEntry?.savedStateHandle?.set("identityKey", destination.identityKey)
             navigate("response_editor")
         }
 

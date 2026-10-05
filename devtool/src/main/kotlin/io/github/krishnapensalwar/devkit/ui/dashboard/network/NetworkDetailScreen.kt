@@ -69,10 +69,21 @@ internal fun NetworkDetailScreen(
     }
     val mockState by MockScenarioRepository.observe(identity)
         .collectAsState(initial = MockApiUiState())
+    val globalMockOn by io.github.krishnapensalwar.devkit.DevToolSdk.mockingEnabledFlow.collectAsState()
+    val scenarioSelected = globalMockOn && !mockState.useCachedBody && mockState.activeScenarioKey != null
+    val cacheSelected = globalMockOn && mockState.useCachedBody
     val activeBuiltIn = MockScenarioCatalog.findByKey(mockState.activeScenarioKey.orEmpty())
     val activeCustom = mockState.customScenarios.find { it.key == mockState.activeScenarioKey }
-    val activeName = activeBuiltIn?.title ?: activeCustom?.name ?: mockScenarioHeader
-    val activeStatus = activeBuiltIn?.statusCode ?: activeCustom?.statusCode ?: call.statusCode.takeIf { it > 0 }
+    val activeName = when {
+        cacheSelected -> "Cached response"
+        scenarioSelected -> activeBuiltIn?.title ?: activeCustom?.name ?: mockScenarioHeader
+        else -> mockScenarioHeader
+    }
+    val activeStatus = when {
+        cacheSelected -> call.statusCode.takeIf { it > 0 }
+        scenarioSelected -> activeBuiltIn?.statusCode ?: activeCustom?.statusCode ?: call.statusCode.takeIf { it > 0 }
+        else -> null
+    }
 
     Scaffold(
         modifier = modifier,
@@ -185,7 +196,7 @@ internal fun NetworkDetailScreen(
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isMocked || mockState.activeScenarioKey != null)
+                    containerColor = if (isMocked || scenarioSelected || cacheSelected)
                         Color(0xFF13261C) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 ),
                 shape = RoundedCornerShape(16.dp)
@@ -202,16 +213,16 @@ internal fun NetworkDetailScreen(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
                                         .background(
-                                            if (isMocked || mockState.activeScenarioKey != null)
+                                            if (isMocked || scenarioSelected || cacheSelected)
                                                 Color(0xFF4ADE80) else MaterialTheme.colorScheme.outline
                                         )
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = if (isMocked || mockState.activeScenarioKey != null) "MOCKED" else "LIVE SERVER",
+                                        text = if (isMocked || scenarioSelected || cacheSelected) "MOCKED" else "LIVE SERVER",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isMocked || mockState.activeScenarioKey != null) Color.Black else MaterialTheme.colorScheme.surface
+                                        color = if (isMocked || scenarioSelected || cacheSelected) Color.Black else MaterialTheme.colorScheme.surface
                                     )
                                 }
                                 if (mockSource != null) {
@@ -223,7 +234,7 @@ internal fun NetworkDetailScreen(
                                 }
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            if (activeName != null) {
+                            if ((scenarioSelected || cacheSelected) && activeName != null) {
                                 Text(
                                     text = "Scenario: $activeName",
                                     fontSize = 13.sp,
@@ -277,16 +288,27 @@ internal fun NetworkDetailScreen(
                                 scope.launch(Dispatchers.IO) {
                                     try {
                                         val headersJson = org.json.JSONObject(call.responseHeaders).toString()
-                                        io.github.krishnapensalwar.devkit.cache.CacheManager.saveWithHeadersJson(
-                                            url = call.url,
-                                            method = call.method,
-                                            status = if (call.statusCode != 0) call.statusCode else 200,
+                                        val status = if (call.statusCode != 0) call.statusCode else 200
+                                        val body = call.responseBody ?: ""
+                                        MockScenarioRepository.saveOverride(
+                                            identity = identity,
+                                            status = status,
                                             headersJson = headersJson,
-                                            body = call.responseBody ?: ""
+                                            body = body
                                         )
-                                        Log.d("NetworkInterceptor", "[NetworkDetailScreen] Saved mock response override for ${call.url}")
+                                        io.github.krishnapensalwar.devkit.cache.CacheManager.saveWithHeadersJson(
+                                            identity = identity,
+                                            status = status,
+                                            headersJson = headersJson,
+                                            body = body
+                                        )
                                         withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Response override saved successfully", Toast.LENGTH_SHORT).show()
+                                            val msg = if (io.github.krishnapensalwar.devkit.DevToolSdk.isMockingEnabled()) {
+                                                "Override saved. Next request uses this body."
+                                            } else {
+                                                "Override saved. Turn on Mock Network Traffic to apply."
+                                            }
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                         }
                                     } catch (e: Exception) {
                                         Log.e("NetworkInterceptor", "[NetworkDetailScreen] Error overriding response: ${e.message}")

@@ -1,10 +1,11 @@
 package io.github.krishnapensalwar.devkit
 
-import android.content.SharedPreferences
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,7 +30,7 @@ internal fun DevToolOverviewScreen(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
-    val isMockingEnabled = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
+    val isMockingEnabled by DevToolSdk.mockingEnabledFlow.collectAsState()
 
     Column(
         modifier = modifier
@@ -106,15 +107,14 @@ internal fun DevToolOverviewScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (isMockingEnabled.value) "Mocking is currently enabled" else "Mocking is currently disabled",
+                                text = if (isMockingEnabled) "Mocking is currently enabled" else "Mocking is currently disabled",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Switch(
-                            checked = isMockingEnabled.value,
+                            checked = isMockingEnabled,
                             onCheckedChange = { enabled ->
-                                isMockingEnabled.value = enabled
                                 DevToolSdk.setMockingEnabled(enabled)
                             }
                         )

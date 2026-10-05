@@ -72,6 +72,8 @@ internal fun DashboardNavGraph(
             val method = previous?.savedStateHandle?.get<String>("method").orEmpty()
             val body = previous?.savedStateHandle?.get<String>("initialBody").orEmpty()
             val status = previous?.savedStateHandle?.get<Int>("initialStatus") ?: 200
+            val requestBody = previous?.savedStateHandle?.get<String>("requestBody").orEmpty()
+            val identityKey = previous?.savedStateHandle?.get<String>("identityKey").orEmpty()
 
             ResponseEditorScreen(
                 initialBody = body,
@@ -80,7 +82,14 @@ internal fun DashboardNavGraph(
                 navController = navController,
                 onSave = { updatedBody, updatedStatus ->
                     scope.launch {
-                        DevToolSdk.updateCachedResponse(url, method, updatedBody, updatedStatus)
+                        DevToolSdk.updateCachedResponse(
+                            url = url,
+                            method = method,
+                            newBody = updatedBody,
+                            newStatus = updatedStatus,
+                            requestBody = requestBody.ifBlank { null },
+                            identityKey = identityKey.ifBlank { null }
+                        )
                     }
                 }
             )

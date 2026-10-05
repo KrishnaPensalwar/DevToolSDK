@@ -104,6 +104,7 @@ internal fun MockScenarioScreen(
         io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(url, method, requestBody)
     }
     val state by MockScenarioRepository.observe(identity).collectAsState(initial = MockApiUiState())
+    val globalMockOn by io.github.krishnapensalwar.devkit.DevToolSdk.mockingEnabledFlow.collectAsState()
 
     var customEditor by remember { mutableStateOf<CustomScenarioData?>(null) }
     var showCreate by remember { mutableStateOf(false) }
@@ -112,27 +113,28 @@ internal fun MockScenarioScreen(
     LaunchedEffect(identity.identityKey, capturedBody) {
         withContext(Dispatchers.IO) {
             if (capturedBody.isNotBlank()) {
-                MockScenarioRepository.saveSnapshot(
+                MockScenarioRepository.saveSnapshotIfAbsent(
                     identity = identity,
                     status = if (capturedStatus in 100..599) capturedStatus else 200,
                     headersJson = capturedHeadersJson.ifBlank { "{}" },
                     body = capturedBody
                 )
-                if (!identity.isGraphQl) {
-                    CacheManager.saveWithHeadersJson(
-                        url = url,
-                        method = method,
-                        status = if (capturedStatus in 100..599) capturedStatus else 200,
-                        headersJson = capturedHeadersJson.ifBlank { "{}" },
-                        body = capturedBody
-                    )
-                }
+                    val existingCache = CacheManager.get(identity)
+                    if (existingCache == null) {
+                        CacheManager.saveWithHeadersJson(
+                            identity = identity,
+                            status = if (capturedStatus in 100..599) capturedStatus else 200,
+                            headersJson = capturedHeadersJson.ifBlank { "{}" },
+                            body = capturedBody
+                        )
+                    }
             }
         }
     }
 
-    val activeBuiltIn = MockScenarioCatalog.findByKey(state.activeScenarioKey.orEmpty())
-    val activeCustom = state.customScenarios.find { it.key == state.activeScenarioKey }
+    val selectedKey = if (globalMockOn && !state.useCachedBody) state.activeScenarioKey else null
+    val activeBuiltIn = MockScenarioCatalog.findByKey(selectedKey.orEmpty())
+    val activeCustom = state.customScenarios.find { it.key == selectedKey }
 
     Scaffold(
         modifier = modifier,
@@ -216,13 +218,20 @@ internal fun MockScenarioScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("API Mock", fontWeight = FontWeight.Bold, color = sdkOnSurface)
                                 Text(
-                                    if (state.enabled) "This endpoint uses the active scenario" else "This endpoint hits the live server",
+                                    if (!globalMockOn) {
+                                        "Turn on Mock Network Traffic on Overview first"
+                                    } else if (state.enabled) {
+                                        "This endpoint uses the active scenario"
+                                    } else {
+                                        "This endpoint hits the live server"
+                                    },
                                     fontSize = 12.sp,
                                     color = sdkOnSurfaceVariant
                                 )
                             }
                             Switch(
-                                checked = state.enabled,
+                                checked = state.enabled && globalMockOn,
+                                enabled = globalMockOn,
                                 onCheckedChange = { enabled ->
                                     scope.launch(Dispatchers.IO) {
                                         MockScenarioRepository.setApiEnabled(identity, enabled)
@@ -232,8 +241,62 @@ internal fun MockScenarioScreen(
                         }
 
                         HorizontalDivider(color = sdkSurfaceVariant)
-                        val scenarioLabel = activeBuiltIn?.title ?: activeCustom?.name ?: "None"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = globalMockOn && state.useCachedBody,
+                                onClick = {
+                                    if (!globalMockOn) {
+                                        Toast.makeText(context, "Turn on Mock Network Traffic on Overview first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        scope.launch(Dispatchers.IO) {
+                                            MockScenarioRepository.setUseCachedBody(identity, true)
+                                        }
+                                    }
+                                },
+                                label = { Text("Cached response", fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF1E3A2F),
+                                    selectedLabelColor = colorStatusSuccess
+                                )
+                            )
+                            FilterChip(
+                                selected = globalMockOn && !state.useCachedBody,
+                                onClick = {
+                                    if (!globalMockOn) {
+                                        Toast.makeText(context, "Turn on Mock Network Traffic on Overview first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        scope.launch(Dispatchers.IO) {
+                                            MockScenarioRepository.setUseCachedBody(identity, false)
+                                        }
+                                    }
+                                },
+                                label = { Text("Scenario", fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF1E3A2F),
+                                    selectedLabelColor = colorStatusSuccess
+                                )
+                            )
+                        }
+                        Text(
+                            if (state.useCachedBody) {
+                                "Serve saved cache/override. Scenarios do not change that body."
+                            } else {
+                                "Serve the selected scenario. Cached body stays in storage."
+                            },
+                            fontSize = 11.sp,
+                            color = sdkOnSurfaceVariant
+                        )
+                        val scenarioLabel = when {
+                            !globalMockOn -> "None"
+                            state.useCachedBody -> "Cached response"
+                            else -> activeBuiltIn?.title ?: activeCustom?.name ?: "None"
+                        }
                         val statusLabel = when {
+                            !globalMockOn -> "—"
+                            state.useCachedBody -> "cached"
                             activeBuiltIn?.statusCode != null -> activeBuiltIn.statusCode.toString()
                             activeCustom != null -> activeCustom.statusCode.toString()
                             else -> "—"
@@ -250,7 +313,7 @@ internal fun MockScenarioScreen(
                     ScenarioGroupHeader(MockScenarioCatalog.groupLabel(group))
                 }
                 items(scenarios, key = { it.key }) { scenario ->
-                    val selected = state.activeScenarioKey == scenario.key
+                    val selected = selectedKey == scenario.key
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ScenarioRow(
                             title = scenario.title,
@@ -258,8 +321,12 @@ internal fun MockScenarioScreen(
                             badge = scenario.statusCode?.toString(),
                             selected = selected,
                             onClick = {
-                                scope.launch(Dispatchers.IO) {
-                                    MockScenarioRepository.activateScenario(identity, scenario.key)
+                                if (!globalMockOn) {
+                                    Toast.makeText(context, "Turn on Mock Network Traffic on Overview first", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    scope.launch(Dispatchers.IO) {
+                                        MockScenarioRepository.activateScenario(identity, scenario.key)
+                                    }
                                 }
                             }
                         )
@@ -301,13 +368,17 @@ internal fun MockScenarioScreen(
             }
 
             items(state.customScenarios, key = { it.id }) { custom ->
-                val selected = state.activeScenarioKey == custom.key
+                val selected = selectedKey == custom.key
                 CustomScenarioRow(
                     custom = custom,
                     selected = selected,
                     onSelect = {
-                        scope.launch(Dispatchers.IO) {
-                            MockScenarioRepository.activateScenario(identity, custom.key)
+                        if (!globalMockOn) {
+                            Toast.makeText(context, "Turn on Mock Network Traffic on Overview first", Toast.LENGTH_SHORT).show()
+                        } else {
+                            scope.launch(Dispatchers.IO) {
+                                MockScenarioRepository.activateScenario(identity, custom.key)
+                            }
                         }
                     },
                     onEdit = { customEditor = custom },

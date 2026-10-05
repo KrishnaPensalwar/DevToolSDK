@@ -18,6 +18,9 @@ internal interface MockScenarioDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertConfig(config: MockApiConfigEntity)
 
+    @Query("UPDATE mock_api_config SET activeScenarioKey = NULL")
+    suspend fun clearAllActiveScenarios()
+
     @Query("SELECT * FROM mock_custom_scenarios WHERE identityKey = :identityKey ORDER BY id DESC")
     fun observeCustom(identityKey: String): Flow<List<MockCustomScenarioEntity>>
 

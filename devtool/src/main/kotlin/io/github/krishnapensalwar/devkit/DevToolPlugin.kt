@@ -100,7 +100,7 @@ val DevToolPlugin = createClientPlugin(
     DevToolSdk.bind(config, ktorClient)
 
     // Snapshot live body before observers / ContentNegotiation consume the channel.
-    ktorClient.receivePipeline.intercept(HttpReceivePipeline.After) { response ->
+    ktorClient.receivePipeline.intercept(HttpReceivePipeline.Before) { response ->
         val next = try {
             response.snapshotBodyForApp()
         } catch (_: Throwable) {
@@ -122,9 +122,24 @@ val DevToolPlugin = createClientPlugin(
             val bodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey) ?: return@onResponse
             GlobalScope.launch(Dispatchers.IO) {
                 try {
+                    val request = response.call.request
+                    val requestBody = outgoingContentAsText(request.content)
+                    val identity = io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+                        url = request.url.toString(),
+                        method = request.method.value,
+                        requestBody = requestBody,
+                        contentType = request.headers[HttpHeaders.ContentType]
+                    )
+                    if (identity.isGraphQl) {
+                        io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.saveSnapshotIfAbsent(
+                            identity = identity,
+                            status = response.status.value,
+                            headersJson = "{}",
+                            body = bodyText
+                        )
+                    }
                     io.github.krishnapensalwar.devkit.cache.CacheManager.save(
-                        url = response.call.request.url.toString(),
-                        method = response.call.request.method.value,
+                        identity,
                         status = response.status.value,
                         headers = response.headers,
                         body = bodyText
@@ -151,11 +166,17 @@ val DevToolPlugin = createClientPlugin(
             )
         }
 
+        val requestBodyText = when (val body = request.body) {
+            is io.ktor.http.content.OutgoingContent -> outgoingContentAsText(body)
+            is String -> body
+            is ByteArray -> String(body, Charsets.UTF_8)
+            else -> null
+        }
         when (val decision = MockManager.decide(
             io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
                 url = request.url.toString(),
                 method = request.method.value,
-                requestBody = null,
+                requestBody = requestBodyText,
                 contentType = request.headers["Content-Type"]
             )
         )) {
