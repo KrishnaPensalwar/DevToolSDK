@@ -31,7 +31,7 @@ fun DashboardHomeScreen(modifier: Modifier = Modifier) {
     val allLogs by logsRepo.logs.collectAsState()
     
     val crashesCount = allLogs.count { it.level.name == "CRASH" }
-    val isMockingEnabled: MutableState<Boolean> = remember { mutableStateOf(DevToolSdk.isMockingEnabled()) }
+    val isMockingEnabled by DevToolSdk.mockingEnabledFlow.collectAsState()
 
 
     Column(
@@ -47,15 +47,14 @@ fun DashboardHomeScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.headlineMedium
         )
         Switch(
-            checked = isMockingEnabled.value,
+            checked = isMockingEnabled,
             onCheckedChange = { enabled ->
-                isMockingEnabled.value = enabled
                 DevToolSdk.setMockingEnabled(enabled)
             },
             modifier = Modifier.padding(top = 8.dp)
         )
         Text(
-            text = if (isMockingEnabled.value) "Mocking is enabled" else "Mocking is disabled",
+            text = if (isMockingEnabled) "Mocking is enabled" else "Mocking is disabled",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp)
         )

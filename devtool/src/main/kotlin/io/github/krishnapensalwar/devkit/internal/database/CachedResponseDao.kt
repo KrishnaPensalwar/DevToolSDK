@@ -4,6 +4,9 @@ import androidx.room.*
 
 @Dao
 internal interface CachedResponseDao {
+    @Query("SELECT * FROM cached_responses WHERE identityKey = :identityKey LIMIT 1")
+    suspend fun getByIdentityKey(identityKey: String): CachedResponseEntity?
+
     @Query("SELECT * FROM cached_responses WHERE url = :url AND method = :method LIMIT 1")
     suspend fun get(url: String, method: String): CachedResponseEntity?
 

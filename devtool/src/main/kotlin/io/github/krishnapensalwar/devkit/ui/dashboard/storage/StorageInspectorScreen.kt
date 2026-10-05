@@ -113,7 +113,10 @@ fun SharedPreferencesSection() {
 @Composable
 fun SharedPrefsCard(fileName: String, context: Context) {
     var expanded by remember { mutableStateOf(false) }
+
+    // Removing the .xml because android expects "user" as prefName and by default filename will be user.xml.
     val prefName = fileName.removeSuffix(".xml")
+
     val prefs = context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
     val entries = prefs.all
 

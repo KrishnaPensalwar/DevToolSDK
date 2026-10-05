@@ -17,6 +17,7 @@ import io.github.krishnapensalwar.devkit.ui.CacheScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.crash.CrashScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.device.DeviceInfoScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.AnalyticsScreen
+import io.github.krishnapensalwar.devkit.ui.dashboard.network.MockScenarioScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.NetworkDetailScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.NetworkListScreen
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.ResponseEditorScreen
@@ -71,6 +72,8 @@ internal fun DashboardNavGraph(
             val method = previous?.savedStateHandle?.get<String>("method").orEmpty()
             val body = previous?.savedStateHandle?.get<String>("initialBody").orEmpty()
             val status = previous?.savedStateHandle?.get<Int>("initialStatus") ?: 200
+            val requestBody = previous?.savedStateHandle?.get<String>("requestBody").orEmpty()
+            val identityKey = previous?.savedStateHandle?.get<String>("identityKey").orEmpty()
 
             ResponseEditorScreen(
                 initialBody = body,
@@ -79,9 +82,37 @@ internal fun DashboardNavGraph(
                 navController = navController,
                 onSave = { updatedBody, updatedStatus ->
                     scope.launch {
-                        DevToolSdk.updateCachedResponse(url, method, updatedBody, updatedStatus)
+                        DevToolSdk.updateCachedResponse(
+                            url = url,
+                            method = method,
+                            newBody = updatedBody,
+                            newStatus = updatedStatus,
+                            requestBody = requestBody.ifBlank { null },
+                            identityKey = identityKey.ifBlank { null }
+                        )
                     }
                 }
+            )
+        }
+
+        composable("mock_scenarios") {
+            val previous = navController.previousBackStackEntry
+            val url = previous?.savedStateHandle?.get<String>("mock_url").orEmpty()
+            val method = previous?.savedStateHandle?.get<String>("mock_method").orEmpty()
+            val body = previous?.savedStateHandle?.get<String>("mock_body").orEmpty()
+            val status = previous?.savedStateHandle?.get<Int>("mock_status") ?: 200
+            val headers = previous?.savedStateHandle?.get<String>("mock_headers").orEmpty()
+            val requestBody = previous?.savedStateHandle?.get<String>("mock_request_body").orEmpty()
+
+            MockScenarioScreen(
+                url = url,
+                method = method,
+                capturedBody = body,
+                capturedStatus = status,
+                capturedHeadersJson = headers,
+                requestBody = requestBody,
+                navController = navController,
+                modifier = Modifier.fillMaxSize()
             )
         }
 

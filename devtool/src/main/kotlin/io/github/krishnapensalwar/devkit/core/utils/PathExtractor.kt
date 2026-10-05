@@ -1,6 +1,7 @@
 package io.github.krishnapensalwar.devkit.core.utils
 
 import android.net.Uri
+import androidx.core.net.toUri
 
 internal object ApiNameExtractor {
 
@@ -13,7 +14,7 @@ internal object ApiNameExtractor {
     )
 
     fun extract(url: String): String {
-        val pathSegments = Uri.parse(url)
+        val pathSegments = url.toUri()
             .pathSegments
             .filter { it.isNotBlank() }
 

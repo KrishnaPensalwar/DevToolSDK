@@ -1,5 +1,9 @@
 package io.github.krishnapensalwar.devkit
 
+import io.github.krishnapensalwar.devkit.mock.MockDecision
+import io.github.krishnapensalwar.devkit.mock.MockManager
+import io.github.krishnapensalwar.devkit.mock.scenario.MockPlan
+import io.github.krishnapensalwar.devkit.mock.toException
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.plugins.api.Send
@@ -8,6 +12,7 @@ import io.ktor.client.request.HttpRequest
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.HttpRequestData
 import io.ktor.client.request.HttpResponseData
+import io.ktor.client.statement.HttpReceivePipeline
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.Headers
@@ -19,11 +24,11 @@ import io.ktor.http.headersOf
 import io.ktor.util.date.GMTDate
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import io.ktor.client.statement.bodyAsText
 
 /**
  * Configuration options for [DevToolPlugin].
@@ -82,6 +87,7 @@ data class MockResponse(
  */
 val StartTimeKey = io.ktor.util.AttributeKey<Long>("DevToolStartTime")
 
+@OptIn(DelicateCoroutinesApi::class)
 val DevToolPlugin = createClientPlugin(
     name = "DevToolPlugin",
     createConfiguration = ::KtorDevToolConfig
@@ -93,6 +99,16 @@ val DevToolPlugin = createClientPlugin(
 
     DevToolSdk.bind(config, ktorClient)
 
+    // Snapshot live body before observers / ContentNegotiation consume the channel.
+    ktorClient.receivePipeline.intercept(HttpReceivePipeline.Before) { response ->
+        val next = try {
+            response.snapshotBodyForApp()
+        } catch (_: Throwable) {
+            response
+        }
+        proceedWith(next)
+    }
+
     onRequest { request, _ ->
         request.attributes.put(StartTimeKey, System.nanoTime())
         config.requestModifier(request)
@@ -101,35 +117,41 @@ val DevToolPlugin = createClientPlugin(
     onResponse { response ->
         config.responseObserver(response)
         config.recorder?.invoke(response.call.request, response)
-        
-        // Root Cause Fix: Read body within the hook's scope to avoid "Parent job is completed"
-        // We only record if mocking is DISABLED (to capture real traffic for future mocking)
-        if (!config.mockingEnabled) {
-            try {
-                // Read body synchronously while the response job is still active
-                val bodyText = response.bodyAsText()
-                
-                GlobalScope.launch(Dispatchers.IO) {
-                    try {
-                        io.github.krishnapensalwar.devkit.cache.CacheManager.save(
-                            url = response.call.request.url.toString(),
-                            method = response.call.request.method.value,
+
+        if (!MockManager.isMockingEnabled()) {
+            val bodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey) ?: return@onResponse
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    val request = response.call.request
+                    val requestBody = outgoingContentAsText(request.content)
+                    val identity = io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+                        url = request.url.toString(),
+                        method = request.method.value,
+                        requestBody = requestBody,
+                        contentType = request.headers[HttpHeaders.ContentType]
+                    )
+                    if (identity.isGraphQl) {
+                        io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.saveSnapshotIfAbsent(
+                            identity = identity,
                             status = response.status.value,
-                            headers = response.headers,
+                            headersJson = "{}",
                             body = bodyText
                         )
-                    } catch (e: Exception) {
-                        // ignore cache errors
                     }
+                    io.github.krishnapensalwar.devkit.cache.CacheManager.save(
+                        identity,
+                        status = response.status.value,
+                        headers = response.headers,
+                        body = bodyText
+                    )
+                } catch (_: Exception) {
                 }
-            } catch (e: Exception) {
-                // ignore if body cannot be read (e.g. already consumed or connection closed)
             }
         }
     }
 
     on(Send) { request ->
-        if (!config.mockingEnabled) {
+        if (!MockManager.isMockingEnabled()) {
             return@on proceed(request)
         }
 
@@ -144,41 +166,60 @@ val DevToolPlugin = createClientPlugin(
             )
         }
 
-        // Attempt to serve from cache
-        val cached = io.github.krishnapensalwar.devkit.cache.CacheManager.get(request.url.toString(), request.method.value)
-        if (cached != null) {
-            val mockFromCache = io.github.krishnapensalwar.devkit.cache.CacheManager.toMockResponse(cached)
-            return@on buildMockCall(
-                client = ktorClient,
-                requestData = request.build(),
-                mock = mockFromCache,
-                callContext = coroutineContext
-            )
+        val requestBodyText = when (val body = request.body) {
+            is io.ktor.http.content.OutgoingContent -> outgoingContentAsText(body)
+            is String -> body
+            is ByteArray -> String(body, Charsets.UTF_8)
+            else -> null
         }
-
-        // No mock or cache found, but mocking is enabled. Return detailed error mock response.
-        val path = request.url.encodedPath
-        val errorBody = """
-            {
-              "error": "DevToolSDK Mocking Enabled",
-              "message": "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.",
-              "url": "${request.url}"
+        when (val decision = MockManager.decide(
+            io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+                url = request.url.toString(),
+                method = request.method.value,
+                requestBody = requestBodyText,
+                contentType = request.headers["Content-Type"]
+            )
+        )) {
+            MockDecision.PassThrough -> return@on proceed(request)
+            is MockDecision.Serve -> {
+                if (decision.plan.delayMs > 0) {
+                    kotlinx.coroutines.delay(decision.plan.delayMs)
+                }
+                if (decision.plan.failure != io.github.krishnapensalwar.devkit.mock.scenario.MockFailureKind.NONE) {
+                    throw decision.plan.toException()
+                }
+                return@on buildMockCall(
+                    client = ktorClient,
+                    requestData = request.build(),
+                    mock = decision.plan.toKtorMock(),
+                    callContext = coroutineContext
+                )
             }
-        """.trimIndent()
-        val errorMock = MockResponse(
-            status = HttpStatusCode.NotFound,
-            headers = headersOf(
-                HttpHeaders.ContentType,
-                ContentType.Application.Json.toString()
-            ),
-            body = errorBody
-        )
-        return@on buildMockCall(
-            client = ktorClient,
-            requestData = request.build(),
-            mock = errorMock,
-            callContext = coroutineContext
-        )
+            MockDecision.Missing -> {
+                val path = request.url.encodedPath
+                val errorBody = """
+                    {
+                      "error": "DevToolSDK Mocking Enabled",
+                      "message": "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.",
+                      "url": "${request.url}"
+                    }
+                """.trimIndent()
+                val errorMock = MockResponse(
+                    status = HttpStatusCode.NotFound,
+                    headers = headersOf(
+                        HttpHeaders.ContentType,
+                        ContentType.Application.Json.toString()
+                    ),
+                    body = errorBody
+                )
+                return@on buildMockCall(
+                    client = ktorClient,
+                    requestData = request.build(),
+                    mock = errorMock,
+                    callContext = coroutineContext
+                )
+            }
+        }
     }
 }
 
@@ -225,4 +266,18 @@ private fun defaultMockResponse(request: HttpRequestBuilder): MockResponse {
         else -> """{"mocked":true,"path":"$path"}"""
     }
     return MockResponse(body = body)
+}
+
+private fun MockPlan.toKtorMock(): MockResponse {
+    val builder = io.ktor.http.HeadersBuilder()
+    headers.forEach { (key, value) -> builder.append(key, value) }
+    builder.append("X-Mock-Source", "Scenario")
+    builder.append("X-Mock-Scenario", scenarioName)
+    builder.append("X-Mock-Key", scenarioKey)
+    val code = statusCode.coerceIn(100, 599)
+    return MockResponse(
+        status = HttpStatusCode.fromValue(code),
+        headers = builder.build(),
+        body = body
+    )
 }

@@ -32,7 +32,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import io.github.krishnapensalwar.devkit.DevToolSdk
 import io.github.krishnapensalwar.devkit.internal.database.CachedResponseEntity
 import io.github.krishnapensalwar.devkit.ui.navigation.Destination
@@ -51,19 +51,16 @@ import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurfaceVariant
 import io.github.krishnapensalwar.devkit.ui.theme.sdkPrimary
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
-import kotlinx.coroutines.launch
 
 @Composable
 internal fun CacheScreen(
     navController: NavController
 ) {
-    val scope = rememberCoroutineScope()
     var cachedResponses by remember { mutableStateOf<List<CachedResponseEntity>>(emptyList()) }
+    val backStack by navController.currentBackStackEntryAsState()
 
-    LaunchedEffect(Unit) {
-        scope.launch {
-            cachedResponses = DevToolSdk.getAllCachedResponses()
-        }
+    LaunchedEffect(backStack) {
+        cachedResponses = DevToolSdk.getAllCachedResponses()
     }
 
     Surface(
@@ -141,7 +138,7 @@ internal fun CacheScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = item.method.uppercase(),
+                                            text = if (item.protocol == "GRAPHQL") "GQL" else item.method.uppercase(),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 11.sp,
                                             color = sdkPrimary
@@ -153,6 +150,15 @@ internal fun CacheScreen(
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
+                                    if (item.protocol == "GRAPHQL" && item.displayName.isNotBlank()) {
+                                        Text(
+                                            text = item.displayName,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = sdkOnSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
                                     Text(
                                         text = item.url,
                                         fontSize = 13.sp,
@@ -175,7 +181,8 @@ internal fun CacheScreen(
                                                     url = item.url,
                                                     method = item.method,
                                                     initialBody = item.body,
-                                                    initialStatus = item.status
+                                                    initialStatus = item.status,
+                                                    identityKey = item.identityKey
                                                 )
                                             )
                                         },

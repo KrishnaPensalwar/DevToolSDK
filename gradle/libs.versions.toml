@@ -68,4 +68,4 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-# maven-publish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
+maven-publish = { id = "com.vanniktech.maven.publish", version = "0.30.0" }
