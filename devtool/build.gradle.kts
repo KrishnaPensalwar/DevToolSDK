@@ -60,18 +60,7 @@ android {
         }
     }
 
-    /*
-     * Publish the Android RELEASE variant.
-     *
-     * This automatically provides:
-     * - release AAR
-     * - sources JAR
-     */
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
-    }
+
 }
 
 kotlin {
