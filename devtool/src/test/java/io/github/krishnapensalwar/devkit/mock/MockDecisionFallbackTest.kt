@@ -3,7 +3,6 @@ package io.github.krishnapensalwar.devkit.mock
 import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.mock.scenario.CapturedResponse
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MockDecisionFallbackTest {
@@ -50,7 +49,7 @@ class MockDecisionFallbackTest {
     fun restPrefersEditedCacheOverStaleSnapshot() {
         val edited = CapturedResponse(200, """{"edited":true}""", emptyMap())
         val snapshot = CapturedResponse(200, """{"original":true}""", emptyMap())
-        val picked = capturedFromSources(rest, snapshot, identityCache = edited, restLegacy = null)
+        val picked = capturedFromSources(rest, snapshot, identityCache = edited)
         assertEquals(edited.body, picked?.body)
     }
 
@@ -58,7 +57,7 @@ class MockDecisionFallbackTest {
     fun graphQlPrefersEditedIdentityCacheOverSnapshot() {
         val snapshot = CapturedResponse(200, """{"data":{"user":{"id":"1"}}}""", emptyMap())
         val edited = CapturedResponse(200, """{"data":{"user":{"id":"edited"}}}""", emptyMap())
-        val picked = capturedFromSources(gql, snapshot, identityCache = edited, restLegacy = null)
+        val picked = capturedFromSources(gql, snapshot, identityCache = edited)
         assertEquals(edited.body, picked?.body)
     }
 

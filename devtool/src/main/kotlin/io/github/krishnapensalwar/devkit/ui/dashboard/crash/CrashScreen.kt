@@ -1,5 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.crash
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,13 +20,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.core.logging.DevLog
-import io.github.krishnapensalwar.devkit.core.logging.LogLevel
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.ui.components.EmptyStateView
 import io.github.krishnapensalwar.devkit.ui.components.StatusDot
@@ -33,7 +34,6 @@ import io.github.krishnapensalwar.devkit.ui.theme.colorStatusError
 import io.github.krishnapensalwar.devkit.ui.theme.sdkBackground
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurfaceVariant
-import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurfaceVariant
 import kotlinx.coroutines.launch
@@ -42,14 +42,13 @@ import java.util.*
 
 @Composable
 internal fun CrashScreen(
-    navController: NavController,
     modifier: Modifier = Modifier
 ) {
     val repository = LoggerManager.getRepository()
-    val allLogs by repository.logs.collectAsState()
-    val crashes = allLogs.filter { it.level == LogLevel.CRASH }
+    val crashes by repository.logs.collectAsState()
     var selectedCrash by remember { mutableStateOf<DevLog?>(null) }
     val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val showClearCrashesDialog = remember { mutableStateOf(false) }
 
@@ -201,6 +200,7 @@ internal fun CrashScreen(
             confirmButton = {
                 TextButton(onClick = {
                     clipboardManager.setText(AnnotatedString(crash.message))
+                    Toast.makeText(context, "Copied crash log", Toast.LENGTH_SHORT).show()
                     selectedCrash = null
                 }) {
                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))

@@ -20,11 +20,12 @@ import io.github.krishnapensalwar.devkit.ui.dashboard.network.json.HighlightedTe
 
 @Composable
 fun SearchableHeaderList(
-    headers: Map<String, String>
+    headers: Map<String, String>,
+    initialQuery: String = ""
 ) {
 
     var searchQuery by remember {
-        mutableStateOf("")
+        mutableStateOf(initialQuery)
     }
 
     val filteredHeaders = remember(headers, searchQuery) {

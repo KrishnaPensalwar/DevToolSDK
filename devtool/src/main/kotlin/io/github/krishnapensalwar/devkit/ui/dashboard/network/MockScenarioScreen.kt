@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -43,7 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -136,14 +134,12 @@ internal fun MockScenarioScreen(
     val activeBuiltIn = MockScenarioCatalog.findByKey(selectedKey.orEmpty())
     val activeCustom = state.customScenarios.find { it.key == selectedKey }
 
-    Scaffold(
-        modifier = modifier,
-        containerColor = sdkBackground,
-        topBar = {
+    Column(
+        modifier = modifier.background(sdkBackground)
+    ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -166,18 +162,23 @@ internal fun MockScenarioScreen(
                         fontWeight = FontWeight.Bold,
                         color = sdkOnSurface
                     )
-                    Text(
-                        text = if (identity.isGraphQl) {
-                            "${identity.graphQlOperationType}  ${identity.displayName}"
-                        } else {
-                            "$method  $url"
-                        },
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        color = sdkOnSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        MethodPill(method)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (identity.isGraphQl) {
+                                "${identity.graphQlOperationType}  ${identity.displayName}"
+                            } else {
+                                url
+                            },
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = sdkOnSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
                 }
                 IconButton(
                     onClick = { showCreate = true },
@@ -189,12 +190,10 @@ internal fun MockScenarioScreen(
                     Icon(Icons.Default.Add, contentDescription = "Add custom", tint = sdkOnSurface)
                 }
             }
-        }
-    ) { padding ->
         LazyColumn(
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
+                .weight(1f)
+                .fillMaxWidth(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -301,9 +300,26 @@ internal fun MockScenarioScreen(
                             activeCustom != null -> activeCustom.statusCode.toString()
                             else -> "—"
                         }
-                        Text("MOCKED", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colorStatusSuccess)
-                        Text("Scenario: $scenarioLabel", color = sdkOnSurface, fontWeight = FontWeight.SemiBold)
-                        Text("Status: $statusLabel", fontSize = 13.sp, color = sdkOnSurfaceVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("ACTIVE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = colorStatusSuccess)
+                            Spacer(Modifier.width(8.dp))
+                            if (statusLabel != "—" && statusLabel != "cached") {
+                                StatusBadge(statusLabel)
+                            } else if (statusLabel == "cached") {
+                                Text("cached body", fontSize = 11.sp, color = colorStatusSuccess)
+                            }
+                        }
+                        Text(scenarioLabel, color = sdkOnSurface, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(
+                            when {
+                                !globalMockOn -> "Global mock is off"
+                                !state.enabled -> "Endpoint mock is off"
+                                state.useCachedBody -> "Next request serves the saved cache"
+                                else -> "Next request serves this scenario"
+                            },
+                            fontSize = 12.sp,
+                            color = sdkOnSurfaceVariant
+                        )
                     }
                 }
             }
@@ -358,12 +374,16 @@ internal fun MockScenarioScreen(
 
             if (state.customScenarios.isEmpty()) {
                 item {
-                    Text(
-                        "No custom scenarios. Tap + to add one.",
-                        color = sdkOnSurfaceVariant,
-                        fontSize = 13.sp,
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = sdkSurface),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("No custom scenarios", fontWeight = FontWeight.SemiBold, color = sdkOnSurface)
+                            Text("Tap + to save a status, delay, and body for this endpoint.", fontSize = 12.sp, color = sdkOnSurfaceVariant)
+                        }
+                    }
                 }
             }
 
@@ -443,6 +463,24 @@ internal fun MockScenarioScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun MethodPill(method: String) {
+    val color = when (method.uppercase()) {
+        "GET" -> colorStatusSuccess
+        "POST" -> colorStatusWarning
+        "DELETE" -> colorStatusError
+        else -> sdkOnSurfaceVariant
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.18f))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(method.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, fontFamily = FontFamily.Monospace)
     }
 }
 

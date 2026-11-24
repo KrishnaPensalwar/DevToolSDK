@@ -4,8 +4,8 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import io.github.krishnapensalwar.devkit.core.logging.LogLevel
 
-@Entity(tableName = "logs")
-internal data class LogEntity(
+@Entity(tableName = "crashes")
+internal data class CrashEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val tag: String,
     val message: String,

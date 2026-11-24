@@ -3,6 +3,7 @@ package io.github.krishnapensalwar.devkit.network.database
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import io.github.krishnapensalwar.devkit.internal.database.NetworkEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao

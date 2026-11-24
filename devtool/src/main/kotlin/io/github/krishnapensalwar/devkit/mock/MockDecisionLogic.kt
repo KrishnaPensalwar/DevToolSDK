@@ -28,11 +28,10 @@ internal fun decisionAfterNoActiveScenario(
 internal fun capturedFromSources(
     identity: RequestIdentity,
     snapshot: CapturedResponse?,
-    identityCache: CapturedResponse?,
-    restLegacy: CapturedResponse?
+    identityCache: CapturedResponse?
 ): CapturedResponse? {
     if (identity.isGraphQl) return identityCache ?: snapshot
-    return identityCache ?: snapshot ?: restLegacy
+    return identityCache ?: snapshot
 }
 
 internal fun shouldSeedSnapshot(existingBody: String?): Boolean = existingBody.isNullOrBlank()

@@ -11,6 +11,7 @@ material = "1.11.0"
 composeBom = "2024.06.00"
 activityCompose = "1.8.2"
 okhttp = "4.12.0"
+dexlib2 = "2.5.2"
 coil = "2.6.0"
 ktor = "3.0.3"
 junit = "4.13.2"
@@ -45,6 +46,7 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 
 # OkHttp
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+dexlib2 = { group = "org.smali", name = "dexlib2", version.ref = "dexlib2" }
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }

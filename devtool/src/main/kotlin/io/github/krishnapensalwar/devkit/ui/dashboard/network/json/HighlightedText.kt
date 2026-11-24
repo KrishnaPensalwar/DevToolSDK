@@ -14,6 +14,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
+private val matchStyle = SpanStyle(background = Color(0xFF854D0E), color = Color(0xFFFDE68A))
+private val activeMatchStyle = SpanStyle(background = Color(0xFFF59E0B), color = Color.Black)
+
 @Composable
 fun HighlightedText(
     text: String,
@@ -22,23 +25,12 @@ fun HighlightedText(
     fontWeight: FontWeight? = null,
     fontSize: TextUnit = 14.sp,
     fontFamily: FontFamily? = null,
-    color: Color = MaterialTheme.colorScheme.onSurface
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    activeOccurrence: Int = -1
 ) {
-    if (query.isBlank()) {
-        Text(
-            text = text,
-            modifier = modifier,
-            fontWeight = fontWeight,
-            fontSize = fontSize,
-            fontFamily = fontFamily,
-            color = color
-        )
-        return
-    }
+    val hits = if (query.isBlank()) emptyList() else occurrencesOf(text, query)
 
-    val startIndex = text.indexOf(query, ignoreCase = true)
-
-    if (startIndex == -1) {
+    if (hits.isEmpty()) {
         Text(
             text = text,
             modifier = modifier,
@@ -52,24 +44,13 @@ fun HighlightedText(
 
     val annotated = buildAnnotatedString {
         var current = 0
-        var match = text.indexOf(query, current, ignoreCase = true)
-
-        while (match >= 0) {
-            append(text.substring(current, match))
-
-            withStyle(
-                SpanStyle(
-                    background = Color(0xFF854D0E),
-                    color = Color(0xFFFDE68A)
-                )
-            ) {
-                append(text.substring(match, match + query.length))
+        hits.forEachIndexed { i, start ->
+            append(text.substring(current, start))
+            withStyle(if (i == activeOccurrence) activeMatchStyle else matchStyle) {
+                append(text.substring(start, start + query.length))
             }
-
-            current = match + query.length
-            match = text.indexOf(query, current, ignoreCase = true)
+            current = start + query.length
         }
-
         append(text.substring(current))
     }
 

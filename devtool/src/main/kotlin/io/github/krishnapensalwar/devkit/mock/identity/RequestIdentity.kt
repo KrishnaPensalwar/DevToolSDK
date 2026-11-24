@@ -1,17 +1,17 @@
 package io.github.krishnapensalwar.devkit.mock.identity
 
-internal enum class RequestProtocol {
+enum class RequestProtocol {
     REST,
     GRAPHQL
 }
 
-internal enum class GraphQlOperationType {
+enum class GraphQlOperationType {
     QUERY,
     MUTATION,
     SUBSCRIPTION
 }
 
-internal data class RequestIdentity(
+data class RequestIdentity(
     val protocol: RequestProtocol,
     val method: String,
     val url: String,
@@ -58,10 +58,11 @@ internal data class RequestIdentity(
         fun restKey(method: String, url: String): String = "rest|${method.uppercase()}|$url"
 
         fun pathOf(url: String): String {
-            val afterScheme = url.substringAfter("://", url)
-            val path = afterScheme.substringAfter("/", missingDelimiterValue = "")
-            val withSlash = if (path.isEmpty() && url.contains("://")) "/" else "/$path"
-            return withSlash.substringBefore("?").ifEmpty { "/" }
+            val path = url.substringAfter("://", url)
+                .substringAfter("/", "")
+                .substringBefore("?")
+
+            return if (path.isEmpty()) "/" else "/$path"
         }
     }
 }

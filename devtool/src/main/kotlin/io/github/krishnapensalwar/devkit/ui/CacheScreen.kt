@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +23,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,14 +65,10 @@ internal fun CacheScreen(
         modifier = Modifier.fillMaxSize(),
         color = sdkBackground
     ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = sdkBackground,
-            topBar = {
+        Column(modifier = Modifier.fillMaxSize()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding()
                         .background(sdkBackground)
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -99,12 +93,10 @@ internal fun CacheScreen(
                         color = sdkOnSurface
                     )
                 }
-            }
-        ) { paddingValues ->
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = paddingValues.calculateTopPadding())
+                    .weight(1f)
+                    .fillMaxWidth()
                     .padding(16.dp)
             ) {
                 if (cachedResponses.isEmpty()) {

@@ -1,4 +1,4 @@
-package io.github.krishnapensalwar.devkit.network.database
+package io.github.krishnapensalwar.devkit.internal.database
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

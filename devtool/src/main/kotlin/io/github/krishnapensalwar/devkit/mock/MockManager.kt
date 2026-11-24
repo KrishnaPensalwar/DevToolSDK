@@ -3,6 +3,8 @@ package io.github.krishnapensalwar.devkit.mock
 import android.content.Context
 import io.github.krishnapensalwar.devkit.MockResponse
 import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
+import io.github.krishnapensalwar.devkit.internal.database.MockApiConfigEntity
+import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.mock.scenario.CapturedResponse
 import io.github.krishnapensalwar.devkit.mock.scenario.MockFailureKind
 import io.github.krishnapensalwar.devkit.mock.scenario.MockPlan
@@ -134,23 +136,6 @@ internal object MockManager {
                 return@runBlocking it
             }
 
-            val mockEntity = database.mockDao().findMock(identity.url, identity.method)
-            if (mockEntity != null && mockEntity.enabled) {
-                val headers = MockScenarioRepository.jsonToHeaders(mockEntity.headers ?: "")
-                return@runBlocking MockDecision.Serve(
-                    MockPlan(
-                        scenarioKey = "legacy",
-                        scenarioName = "Saved mock",
-                        statusCode = 200,
-                        message = "Mocked OK",
-                        body = mockEntity.responseBody,
-                        headers = headers.ifEmpty { mapOf("Content-Type" to "application/json") },
-                        delayMs = 0,
-                        failure = MockFailureKind.NONE
-                    )
-                )
-            }
-
             val cachedEntity = database.cachedResponseDao().getByIdentityKey(identity.identityKey)
             if (cachedEntity != null) {
                 return@runBlocking MockDecision.Serve(
@@ -170,8 +155,8 @@ internal object MockManager {
 
     private suspend fun loadCaptured(
         database: DevToolDatabase,
-        identity: io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity,
-        config: io.github.krishnapensalwar.devkit.internal.database.MockApiConfigEntity?
+        identity: RequestIdentity,
+        config: MockApiConfigEntity?
     ): CapturedResponse? {
         val snapshot = config?.snapshotBody?.let { body ->
             CapturedResponse(
@@ -188,7 +173,7 @@ internal object MockManager {
                     headers = MockScenarioRepository.jsonToHeaders(it.headersJson)
                 )
             }
-            return capturedFromSources(identity, snapshot, gqlCache, restLegacy = null)
+            return capturedFromSources(identity, snapshot, gqlCache)
         }
         val restCache = database.cachedResponseDao().getByIdentityKey(identity.identityKey)?.let {
             CapturedResponse(
@@ -203,14 +188,7 @@ internal object MockManager {
                 headers = MockScenarioRepository.jsonToHeaders(it.headersJson)
             )
         }
-        val restLegacy = database.mockDao().findMock(identity.url, identity.method)?.let {
-            CapturedResponse(
-                status = 200,
-                body = it.responseBody,
-                headers = MockScenarioRepository.jsonToHeaders(it.headers ?: "")
-            )
-        }
-        return capturedFromSources(identity, snapshot, restCache, restLegacy)
+        return capturedFromSources(identity, snapshot, restCache)
     }
 }
 
@@ -250,16 +228,4 @@ private fun MockPlan.toOkHttp(request: Request): Response {
         }
     }
     return builder.build()
-}
-
-internal fun parseHeadersJson(headersJson: String?): Map<String, String> {
-    if (headersJson.isNullOrBlank()) return emptyMap()
-    return try {
-        val jsonObject = JSONObject(headersJson)
-        buildMap {
-            jsonObject.keys().forEach { key -> put(key, jsonObject.getString(key)) }
-        }
-    } catch (_: Exception) {
-        emptyMap()
-    }
 }

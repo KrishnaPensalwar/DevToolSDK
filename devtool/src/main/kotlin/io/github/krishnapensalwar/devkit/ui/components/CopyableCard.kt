@@ -1,6 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.components
 
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,44 +16,35 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.ui.theme.*
 
 @Composable
 fun CopyableCard(
     title: String,
     expandedByDefault: Boolean = true,
-    onCopy: (() -> Unit) ?= null,
+    onCopy: (() -> Unit)? = null,
+    copyLabel: String = title,
     modifier: Modifier = Modifier,
+    fillHeight: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val TAG = "NetworkInterceptor"
-
-    var expanded by rememberSaveable {
-        mutableStateOf(expandedByDefault)
-    }
-
-    Log.d(TAG, "[CopyableCard] Rendering card '$title'. Expanded state: $expanded")
+    val context = LocalContext.current
+    var expanded by rememberSaveable { mutableStateOf(expandedByDefault) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = sdkSurface),
         shape = MaterialTheme.shapes.extraLarge
     ) {
-        Column {
+        Column(modifier = if (fillHeight) Modifier.fillMaxSize() else Modifier) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { 
-                        val targetState = !expanded
-                        Log.d(TAG, "[CopyableCard] Card '$title' clicked. Toggling expanded: $expanded -> $targetState")
-                        expanded = targetState 
-                    }
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -66,9 +57,9 @@ fun CopyableCard(
 
                 IconButton(
                     onClick = {
-                        Log.d(TAG, "[CopyableCard] Copy content triggered for card: '$title'")
                         onCopy?.let {
-                            onCopy.invoke()
+                            it()
+                            Toast.makeText(context, "Copied $copyLabel", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.size(32.dp)
@@ -91,12 +82,19 @@ fun CopyableCard(
                 )
             }
 
-            AnimatedVisibility(expanded) {
-                if (expanded) {
-                    Log.d(TAG, "[CopyableCard] Card '$title' content visible. Rendering body.")
-                }
-                Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
+            if (fillHeight && expanded) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
+                ) {
                     content()
+                }
+            } else {
+                AnimatedVisibility(expanded) {
+                    Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)) {
+                        content()
+                    }
                 }
             }
         }

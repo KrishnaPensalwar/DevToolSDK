@@ -8,37 +8,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,14 +38,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
-import io.github.krishnapensalwar.devkit.core.utils.ApiNameExtractor
-import io.github.krishnapensalwar.devkit.mock.identity.GraphQlOperationType
 import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
+import io.github.krishnapensalwar.devkit.network.model.isMocked
 import io.github.krishnapensalwar.devkit.network.model.matchesQuery
-import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
-import io.github.krishnapensalwar.devkit.ui.components.StatusDot
-import io.github.krishnapensalwar.devkit.ui.dashboard.network.components.NetworkSummaryBadge
+import io.github.krishnapensalwar.devkit.ui.dashboard.components.TopSection
 import io.github.krishnapensalwar.devkit.ui.navigation.Destination
 import io.github.krishnapensalwar.devkit.ui.navigation.navigateTo
 import io.github.krishnapensalwar.devkit.ui.theme.colorStatusError
@@ -78,9 +57,7 @@ import io.github.krishnapensalwar.devkit.ui.theme.methodPut
 import io.github.krishnapensalwar.devkit.ui.theme.sdkBackground
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurface
 import io.github.krishnapensalwar.devkit.ui.theme.sdkOnSurfaceVariant
-import io.github.krishnapensalwar.devkit.ui.theme.sdkPrimary
 import io.github.krishnapensalwar.devkit.ui.theme.sdkSurface
-import io.github.krishnapensalwar.devkit.ui.theme.sdkSurfaceVariant
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,10 +73,7 @@ internal fun NetworkListScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedMethods by remember { mutableStateOf(setOf<String>()) }
     var selectedStatuses by remember { mutableStateOf(setOf<String>()) }
-
-    var isMethodDropdownExpanded by remember { mutableStateOf(false) }
-    var isStatusDropdownExpanded by remember { mutableStateOf(false) }
-    var showClearNetworkDialog by remember { mutableStateOf(false) }
+    var selectedTypes by remember { mutableStateOf(setOf<String>()) }
 
     val existingMethods = remember(calls) {
         val methods = calls.map { it.method.uppercase() }.distinct()
@@ -109,9 +83,9 @@ internal fun NetworkListScreen(
     val filteredCalls = calls.filter { call ->
         val identity = RequestIdentity.parse(call.url, call.method, call.requestBody)
         val matchesQuery = searchQuery.isEmpty() ||
-            call.matchesQuery(searchQuery, identity)
+                call.matchesQuery(searchQuery, identity)
         val matchesMethod = selectedMethods.isEmpty() ||
-            selectedMethods.contains(call.method.uppercase())
+                selectedMethods.contains(call.method.uppercase())
         val matchesStatus = selectedStatuses.isEmpty() || selectedStatuses.any { status ->
             when (status) {
                 "Success" -> call.statusCode in 200..299
@@ -120,334 +94,54 @@ internal fun NetworkListScreen(
                 else -> true
             }
         }
-        matchesQuery && matchesMethod && matchesStatus
+        val matchesType = selectedTypes.isEmpty() || selectedTypes.any { type ->
+            when (type) {
+                "GraphQL" -> identity.isGraphQl
+                "REST" -> !identity.isGraphQl
+                else -> true
+            }
+        }
+        matchesQuery && matchesMethod && matchesStatus && matchesType
     }
 
     Column(modifier = modifier.background(sdkBackground)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        TopSection(
+            searchQuery = searchQuery,
+            onSearchChange = { searchQuery = it },
+            selectedMethods = selectedMethods,
+            onMethodsChange = { selectedMethods = it },
+            existingMethods = existingMethods,
+            selectedStatuses = selectedStatuses,
+            onStatusesChange = { selectedStatuses = it },
+            selectedTypes = selectedTypes,
+            onTypesChange = { selectedTypes = it },
+            onClearConfirmed = { scope.launch { repository.clearAll() } }
+        )
+    }
 
-//        NetworkSummaryBadge(calls = calls)
-
-        // Sticky filter header
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(sdkBackground)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    if (filteredCalls.isEmpty()) {
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Text("No network activity", color = sdkOnSurfaceVariant)
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                DevToolSearchBar(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = "Filter traffic...",
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(
-                    onClick = { showClearNetworkDialog = true },
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(sdkSurface)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Clear All",
-                        tint = sdkOnSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            if (showClearNetworkDialog) {
-                AlertDialog(
-                    onDismissRequest = { showClearNetworkDialog = false },
-                    title = {
-                        Text(
-                            text = "Clear Network Logs",
-                            fontWeight = FontWeight.Bold,
-                            color = sdkOnSurface
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Are you sure you want to clear all network activity logs? This action cannot be undone.",
-                            color = sdkOnSurfaceVariant
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                scope.launch {
-                                    repository.clearAll()
-                                }
-                                showClearNetworkDialog = false
-                            }
-                        ) {
-                            Text("Clear", color = colorStatusError)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(
-                            onClick = { showClearNetworkDialog = false }
-                        ) {
-                            Text("Cancel", color = sdkOnSurfaceVariant)
-                        }
-                    },
-                    containerColor = sdkSurface,
-                    textContentColor = sdkOnSurfaceVariant,
-                    titleContentColor = sdkOnSurface,
-                    shape = RoundedCornerShape(24.dp)
+            items(filteredCalls, key = { it.id }) { call ->
+                NetworkCallItem(
+                    call = call,
+                    onClick = { navController.navigateTo(Destination.NetworkDetail(call.id, searchQuery.trim())) }
                 )
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Method dropdown chip
-                Box {
-                    val hasMethodFilter = selectedMethods.isNotEmpty()
-                    FilterChip(
-                        selected = hasMethodFilter,
-                        onClick = { isMethodDropdownExpanded = true },
-                        label = {
-                            Text(
-                                text = if (hasMethodFilter) "Method: ${selectedMethods.joinToString(", ")}" else "Method: All",
-                                fontSize = 14.sp
-                            )
-                        },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Dropdown",
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = sdkSurfaceVariant,
-                            selectedLabelColor = sdkPrimary,
-                            containerColor = sdkSurface,
-                            labelColor = sdkOnSurfaceVariant
-                        ),
-                        border = null,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-
-                    DropdownMenu(
-                        expanded = isMethodDropdownExpanded,
-                        onDismissRequest = { isMethodDropdownExpanded = false },
-                        modifier = Modifier.background(sdkSurface)
-                    ) {
-                        existingMethods.forEach { method ->
-                            val isChecked = selectedMethods.contains(method)
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        val targetColor = methodColor(method)
-                                        Checkbox(
-                                            checked = isChecked,
-                                            onCheckedChange = { checked ->
-                                                selectedMethods = if (checked) {
-                                                    selectedMethods + method
-                                                } else {
-                                                    selectedMethods - method
-                                                }
-                                            },
-                                            colors = CheckboxDefaults.colors(
-                                                checkedColor = targetColor,
-                                                checkmarkColor = sdkBackground
-                                            )
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(text = method, color = targetColor, fontWeight = FontWeight.Bold)
-                                    }
-                                },
-                                onClick = {
-                                    selectedMethods = if (isChecked) {
-                                        selectedMethods - method
-                                    } else {
-                                        selectedMethods + method
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Status dropdown chip
-                Box {
-                    val hasStatusFilter = selectedStatuses.isNotEmpty()
-                    FilterChip(
-                        selected = hasStatusFilter,
-                        onClick = { isStatusDropdownExpanded = true },
-                        label = {
-                            Text(
-                                text = if (hasStatusFilter) "Status: ${selectedStatuses.joinToString(", ")}" else "Status: All",
-                                fontSize = 14.sp
-                            )
-                        },
-                        trailingIcon = {
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Dropdown",
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = sdkSurfaceVariant,
-                            selectedLabelColor = sdkPrimary,
-                            containerColor = sdkSurface,
-                            labelColor = sdkOnSurfaceVariant
-                        ),
-                        border = null,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-
-                    DropdownMenu(
-                        expanded = isStatusDropdownExpanded,
-                        onDismissRequest = { isStatusDropdownExpanded = false },
-                        modifier = Modifier.background(sdkSurface)
-                    ) {
-                        listOf("Success", "Failed", "Pending").forEach { status ->
-                            val isChecked = selectedStatuses.contains(status)
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        val targetColor = when (status) {
-                                            "Success" -> colorStatusSuccess
-                                            "Failed" -> colorStatusError
-                                            "Pending" -> colorStatusWarning
-                                            else -> sdkOnSurface
-                                        }
-                                        Checkbox(
-                                            checked = isChecked,
-                                            onCheckedChange = { checked ->
-                                                selectedStatuses = if (checked) {
-                                                    selectedStatuses + status
-                                                } else {
-                                                    selectedStatuses - status
-                                                }
-                                            },
-                                            colors = CheckboxDefaults.colors(
-                                                checkedColor = targetColor,
-                                                checkmarkColor = sdkBackground
-                                            )
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(text = status, color = targetColor, fontWeight = FontWeight.Bold)
-                                    }
-                                },
-                                onClick = {
-                                    selectedStatuses = if (isChecked) {
-                                        selectedStatuses - status
-                                    } else {
-                                        selectedStatuses + status
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
-
-        if (filteredCalls.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No network activity", color = sdkOnSurfaceVariant)
-            }
-        } else {
-            val identities = filteredCalls.map { call ->
-                call to RequestIdentity.parse(call.url, call.method, call.requestBody)
-            }
-            val graphQlCalls = identities.filter { it.second.isGraphQl }
-            val restCalls = identities.filter { !it.second.isGraphQl }
-            val graphQlByEndpoint = graphQlCalls.groupBy { it.second.endpoint }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                if (graphQlCalls.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "GRAPHQL",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                            color = sdkOnSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                        )
-                    }
-                    graphQlByEndpoint.forEach { (endpoint, calls) ->
-                        item {
-                            Text(
-                                text = "${calls.first().first.method} $endpoint",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = sdkOnSurface,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                            )
-                        }
-                        enumValues<GraphQlOperationType>().forEach { type ->
-                            val typed = calls.filter { it.second.graphQlOperationType == type }
-                            if (typed.isNotEmpty()) {
-                                item {
-                                    Text(
-                                        text = when (type) {
-                                            GraphQlOperationType.QUERY -> "Queries"
-                                            GraphQlOperationType.MUTATION -> "Mutations"
-                                            GraphQlOperationType.SUBSCRIPTION -> "Subscriptions"
-                                        },
-                                        fontSize = 11.sp,
-                                        color = sdkOnSurfaceVariant,
-                                        modifier = Modifier.padding(start = 28.dp, top = 6.dp, bottom = 2.dp)
-                                    )
-                                }
-                                items(typed) { (call, identity) ->
-                                    NetworkCallItem(
-                                        call = call,
-                                        identity = identity,
-                                        onClick = { navController.navigateTo(Destination.NetworkDetail(call.id)) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                if (restCalls.isNotEmpty()) {
-                    if (graphQlCalls.isNotEmpty()) {
-                        item {
-                            Text(
-                                text = "REST",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.2.sp,
-                                color = sdkOnSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-                    items(restCalls) { (call, identity) ->
-                        NetworkCallItem(
-                            call = call,
-                            identity = identity,
-                            onClick = { navController.navigateTo(Destination.NetworkDetail(call.id)) }
-                        )
-                    }
-                }
-            }
-        }
+    }
     }
 }
 
@@ -464,143 +158,74 @@ internal fun NetworkCallItem(
         else -> colorStatusNeutral
     }
 
+    val label = identity.graphQlOperationName?.takeIf { it.isNotBlank() }
+        ?: identity.endpoint.ifBlank { call.endpoint }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = sdkSurface
-        )
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = sdkSurface)
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
+            Text(
+                text = call.method,
+                color = methodColor(call.method),
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                maxLines = 1,
+                modifier = Modifier.width(64.dp)
+            )
+            Text(
+                text = label,
+                color = sdkOnSurface,
+                fontSize = 14.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
-            ) {
+            )
+            if (call.isMocked) {
                 Text(
-                    text = if (identity.isGraphQl) identity.displayName else ApiNameExtractor.extract(call.url),
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "MOCK",
+                    color = Color.Black,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = sdkOnSurface
-                )
-
-                Spacer(Modifier.height(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = methodColor(call.method).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = call.method,
-                            color = methodColor(call.method),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    if (identity.isGraphQl) {
-                        Surface(
-                            color = methodPatch.copy(alpha = 0.18f),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = identity.graphQlOperationType?.name ?: "GQL",
-                                color = methodPatch,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
-                        }
-                        Spacer(Modifier.width(8.dp))
-                    }
-
-                    Text(
-                        text = call.host,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = sdkOnSurfaceVariant,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-
-                    val mockScenario = call.responseHeaders.entries.find {
-                        it.key.equals("X-Mock-Scenario", ignoreCase = true)
-                    }?.value
-                    val isMocked = mockScenario != null ||
-                        call.responseHeaders.keys.any { it.equals("X-Mock-Source", ignoreCase = true) }
-                    if (isMocked) {
-                        Spacer(Modifier.width(8.dp))
-                        Surface(
-                            color = colorStatusSuccess.copy(alpha = 0.18f),
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = mockScenario?.let { "MOCK" } ?: "MOCK",
-                                color = colorStatusSuccess,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.width(16.dp))
-
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusDot(color = statusColor, modifier = Modifier.size(6.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = call.statusCode.toString(),
-                        color = statusColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
-                Text(
-                    text = "${call.duration}ms",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = sdkOnSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .background(colorStatusSuccess, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
-
-            Spacer(Modifier.width(8.dp))
-
+            Text(
+                text = call.statusCode.toString(),
+                color = statusColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                null,
-                tint = sdkOnSurface,
-                modifier = Modifier.size(20.dp)
+                contentDescription = null,
+                tint = sdkOnSurfaceVariant,
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(18.dp)
             )
         }
     }
 }
 
 internal fun methodColor(method: String): Color = when (method.uppercase()) {
-    "GET"    -> methodGet
-    "POST"   -> methodPost
-    "PUT"    -> methodPut
+    "GET" -> methodGet
+    "POST" -> methodPost
+    "PUT" -> methodPut
     "DELETE" -> methodDelete
-    "PATCH"  -> methodPatch
-    else     -> colorStatusNeutral
+    "PATCH" -> methodPatch
+    else -> colorStatusNeutral
 }

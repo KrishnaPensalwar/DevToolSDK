@@ -1,8 +1,7 @@
 package io.github.krishnapensalwar.devkit.core.logging
 
 import android.content.Context
-import io.github.krishnapensalwar.devkit.internal.database.LogDatabase
-import io.github.krishnapensalwar.devkit.internal.database.NetworkDatabase
+import io.github.krishnapensalwar.devkit.internal.database.DevToolDatabase
 import io.github.krishnapensalwar.devkit.network.repository.NetworkRepository
 
 internal object LoggerManager {
@@ -10,22 +9,17 @@ internal object LoggerManager {
     private var networkRepository: NetworkRepository? = null
 
     fun init(context: Context) {
+        val database = DevToolDatabase.getDatabase(context)
         if (repository == null) {
-            val database = LogDatabase.getDatabase(context)
-            repository = LogRepository(database.logDao())
+            repository = LogRepository(database.crashDao())
         }
         if (networkRepository == null) {
-            val networkDb = NetworkDatabase.getDatabase(context)
-            networkRepository = NetworkRepository(networkDb.networkDao())
+            networkRepository = NetworkRepository(database.networkDao())
         }
     }
 
     fun getRepository(): LogRepository {
         return repository ?: throw IllegalStateException("LoggerManager not initialized")
-    }
-
-    suspend fun clearCrashes() {
-        repository?.clearAll()
     }
 
     fun getNetworkRepository(): NetworkRepository {

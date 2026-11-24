@@ -1,9 +1,12 @@
 package io.github.krishnapensalwar.devkit
 
+import io.github.krishnapensalwar.devkit.core.logging.LoggerManager
 import io.github.krishnapensalwar.devkit.mock.MockDecision
 import io.github.krishnapensalwar.devkit.mock.MockManager
+import io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity
 import io.github.krishnapensalwar.devkit.mock.scenario.MockPlan
 import io.github.krishnapensalwar.devkit.mock.toException
+import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 import io.ktor.client.HttpClient
 import io.ktor.client.call.HttpClientCall
 import io.ktor.client.plugins.api.Send
@@ -29,6 +32,8 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Configuration options for [DevToolPlugin].
@@ -118,13 +123,15 @@ val DevToolPlugin = createClientPlugin(
         config.responseObserver(response)
         config.recorder?.invoke(response.call.request, response)
 
+        persistNetworkCall(response)
+
         if (!MockManager.isMockingEnabled()) {
             val bodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey) ?: return@onResponse
             GlobalScope.launch(Dispatchers.IO) {
                 try {
                     val request = response.call.request
                     val requestBody = outgoingContentAsText(request.content)
-                    val identity = io.github.krishnapensalwar.devkit.mock.identity.RequestIdentity.parse(
+                    val identity = RequestIdentity.parse(
                         url = request.url.toString(),
                         method = request.method.value,
                         requestBody = requestBody,
@@ -183,7 +190,7 @@ val DevToolPlugin = createClientPlugin(
             MockDecision.PassThrough -> return@on proceed(request)
             is MockDecision.Serve -> {
                 if (decision.plan.delayMs > 0) {
-                    kotlinx.coroutines.delay(decision.plan.delayMs)
+                    kotlinx.coroutines.delay(decision.plan.delayMs.milliseconds)
                 }
                 if (decision.plan.failure != io.github.krishnapensalwar.devkit.mock.scenario.MockFailureKind.NONE) {
                     throw decision.plan.toException()
@@ -223,6 +230,61 @@ val DevToolPlugin = createClientPlugin(
     }
 }
 
+@OptIn(DelicateCoroutinesApi::class)
+private fun persistNetworkCall(response: HttpResponse) {
+    val startTime = response.call.request.attributes.getOrNull(StartTimeKey)
+    val duration = if (startTime != null) {
+        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
+    } else {
+        0L
+    }
+
+    val request = response.call.request
+    val sensitive = DevTool.config.sensitiveHeaders
+    val reqHeadersMap = mutableMapOf<String, String>()
+    request.headers.forEach { key, values ->
+        val isSensitive = sensitive.any { it.equals(key, ignoreCase = true) }
+        reqHeadersMap[key] = if (isSensitive) "••••••••" else values.joinToString(",")
+    }
+    val resHeadersMap = mutableMapOf<String, String>()
+    response.headers.forEach { key, values ->
+        val isSensitive = sensitive.any { it.equals(key, ignoreCase = true) }
+        resHeadersMap[key] = if (isSensitive) "••••••••" else values.joinToString(",")
+    }
+
+    val requestBodyText = outgoingContentAsText(request.content)
+    val responseBodyText = response.call.attributes.getOrNull(CapturedResponseBodyKey)
+        ?: "(body omitted)"
+
+    val networkCall = NetworkCall(
+        url = request.url.toString(),
+        endpoint = request.url.encodedPath,
+        host = request.url.host,
+        method = request.method.value,
+        requestHeaders = reqHeadersMap,
+        requestBody = requestBodyText,
+        requestSize = request.content.contentLength ?: 0L,
+        responseHeaders = resHeadersMap,
+        responseBody = responseBodyText,
+        responseSize = responseBodyText.toByteArray(Charsets.UTF_8).size.toLong(),
+        statusCode = response.status.value,
+        statusMessage = response.status.description,
+        duration = duration,
+        timestamp = System.currentTimeMillis(),
+        success = response.status.value in 200..299,
+        exception = null,
+        protocol = response.version.toString()
+    )
+
+    GlobalScope.launch(Dispatchers.IO) {
+        try {
+            LoggerManager.getNetworkRepository().addCall(networkCall)
+        } catch (e: Exception) {
+            android.util.Log.e("DevToolPlugin", "Error logging Ktor call to database: ${e.message}", e)
+        }
+    }
+}
+
 @OptIn(InternalAPI::class)
 private fun buildMockCall(
     client: HttpClient,
@@ -240,34 +302,6 @@ private fun buildMockCall(
     )
     return HttpClientCall(client, requestData, responseData)
 }
-
-private fun defaultMockResponse(request: HttpRequestBuilder): MockResponse {
-    val path = request.url.encodedPath
-    val body = when {
-        path.contains("/driver/reports/assigned") -> "[]"
-        path.contains("/devices/register") ->
-            """{"message":"Device registered (mock)","deviceId":"mock-device","fcmToken":null,"deviceName":"mock"}"""
-        path.contains("/complaints/") ->
-            """
-            {
-              "id":"mock-complaint",
-              "title":"Mock complaint",
-              "description":"Served by DevTool mock",
-              "status":"OPEN",
-              "category":"OTHER",
-              "imageUrls":[],
-              "latitude":0.0,
-              "longitude":0.0,
-              "locationName":"Mock City",
-              "createdAt":0,
-              "updatedAt":0
-            }
-            """.trimIndent()
-        else -> """{"mocked":true,"path":"$path"}"""
-    }
-    return MockResponse(body = body)
-}
-
 private fun MockPlan.toKtorMock(): MockResponse {
     val builder = io.ktor.http.HeadersBuilder()
     headers.forEach { (key, value) -> builder.append(key, value) }

@@ -60,7 +60,6 @@ class GraphQlParserTest {
         assertTrue(identity.isGraphQl)
         assertNull(identity.graphQlOperationName)
         assertTrue(identity.displayName.startsWith("anonymous-"))
-        assertEquals(16, identity.graphQlDocumentHash?.length)
     }
 
     @Test

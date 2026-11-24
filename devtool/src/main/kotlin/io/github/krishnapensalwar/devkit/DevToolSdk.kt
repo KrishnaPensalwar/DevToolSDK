@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val PREFS_NAME = "devtool_prefs"
 private const val KEY_MOCKING_ENABLED = "mocking_enabled"
@@ -55,18 +56,13 @@ internal object DevToolSdk {
     internal fun initialize(application: Application) {
         appContext = application
 
-        database = Room.databaseBuilder(
-            application,
-            DevToolDatabase::class.java,
-            "devtool-db"
-        )
-            .fallbackToDestructiveMigration()
-            .build()
+        val db = DevToolDatabase.getDatabase(application)
+        database = db
 
         // Initialize mock manager and cache manager
         MockManager.init(database!!, application)
         io.github.krishnapensalwar.devkit.cache.CacheManager.init(database!!)
-        io.github.krishnapensalwar.devkit.mock.scenario.MockScenarioRepository.init(database!!)
+        MockScenarioRepository.init(database!!)
 
         val prefs = application.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val isEnabled = prefs.getBoolean(KEY_MOCKING_ENABLED, false)
@@ -145,7 +141,7 @@ internal object DevToolSdk {
         newStatus: Int? = null,
         requestBody: String? = null,
         identityKey: String? = null
-    ) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    ) = withContext(Dispatchers.IO) {
         val dao = database?.cachedResponseDao() ?: return@withContext
         val parsed = RequestIdentity.parse(url, method, requestBody)
         val existing = identityKey?.takeIf { it.isNotBlank() }?.let { dao.getByIdentityKey(it) }

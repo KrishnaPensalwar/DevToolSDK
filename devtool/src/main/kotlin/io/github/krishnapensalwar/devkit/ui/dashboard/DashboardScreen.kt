@@ -57,7 +57,10 @@ internal fun DashboardScreen(onClose: () -> Unit) {
     }
 
     val startRoute = remember(visibleTabs) {
-        (visibleTabs.firstOrNull() ?: DashboardTab.HOME).name.lowercase()
+        val tab = visibleTabs.firstOrNull { it == DashboardTab.NETWORK }
+            ?: visibleTabs.firstOrNull()
+            ?: DashboardTab.NETWORK
+        tab.name.lowercase()
     }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
