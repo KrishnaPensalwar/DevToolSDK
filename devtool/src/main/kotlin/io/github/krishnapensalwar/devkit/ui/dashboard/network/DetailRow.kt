@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -15,10 +16,14 @@ import androidx.compose.ui.unit.sp
 fun DetailRow(
     label: String,
     value: String? = null,
-    valueContent: @Composable (() -> Unit)? = null
+    valueTextStyle : TextStyle = MaterialTheme.typography.bodyLarge.copy(
+        color =  MaterialTheme.colorScheme.onSurface
+    )
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -31,26 +36,18 @@ fun DetailRow(
             modifier = Modifier.width(80.dp)
         )
 
-        if (valueContent != null) {
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
-                valueContent()
-            }
-        } else {
-            Text(
-                text = value.orEmpty(),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        Text(
+            text = value.orEmpty(),
+            style = valueTextStyle,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+
     }
 }
 
 @Preview
 @Composable
-fun prev(){
-    DetailRow("title","description")
+fun prev() {
+    DetailRow("title", "description")
 }

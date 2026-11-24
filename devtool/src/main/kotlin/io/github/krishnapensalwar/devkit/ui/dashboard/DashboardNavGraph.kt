@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -51,7 +52,7 @@ internal fun DashboardNavGraph(
         }
 
         composable(DashboardTab.CRASHES.name.lowercase()) {
-            CrashScreen(navController, Modifier.fillMaxSize())
+            CrashScreen(Modifier.fillMaxSize())
         }
 
         composable(DashboardTab.STORAGE.name.lowercase()) {
@@ -121,10 +122,14 @@ internal fun DashboardNavGraph(
             val repository = LoggerManager.getNetworkRepository()
             val calls by repository.calls.collectAsState()
             val call = calls.find { it.id == callId }
+            val searchQuery = remember(entry) {
+                navController.previousBackStackEntry?.savedStateHandle?.get<String>("detail_query").orEmpty()
+            }
 
             if (call != null) {
                 NetworkDetailScreen(
                     call = call,
+                    initialSearchQuery = searchQuery,
                     navController = navController,
                     modifier = Modifier.fillMaxSize()
                 )

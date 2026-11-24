@@ -2,7 +2,7 @@ package io.github.krishnapensalwar.devkit.network.repository
 
 import android.util.Log
 import io.github.krishnapensalwar.devkit.network.database.NetworkDao
-import io.github.krishnapensalwar.devkit.network.database.NetworkEntity
+import io.github.krishnapensalwar.devkit.internal.database.NetworkEntity
 import io.github.krishnapensalwar.devkit.network.model.NetworkCall
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,60 +18,38 @@ internal class NetworkRepository(private val networkDao: NetworkDao) {
     val calls: StateFlow<List<NetworkCall>> = _calls.asStateFlow()
 
     private val repositoryScope = CoroutineScope(Dispatchers.IO)
-    private val TAG = "NetworkInterceptor"
 
     init {
         repositoryScope.launch {
-            Log.d(TAG, "[NetworkRepository] Registering database observer Flow...")
             networkDao.getAllCalls().collectLatest { entities ->
-                Log.d(TAG, "[NetworkRepository] Database observer emitted ${entities.size} entities.")
-                val domainCalls = entities.map { it.toDomain() }
-                _calls.value = domainCalls
-                Log.d(TAG, "[NetworkRepository] Database observer: Updated calls StateFlow list. Current items count = ${domainCalls.size}")
-                if (domainCalls.isNotEmpty()) {
-                    val latest = domainCalls.first()
-                    Log.d(TAG, "[NetworkRepository] Latest emitted call: Method=${latest.method}, Host=${latest.host}, Code=${latest.statusCode}, Size=${latest.responseSize} bytes")
-                }
+                _calls.value = entities.map { it.toDomain() }
             }
         }
     }
 
     suspend fun addCall(call: NetworkCall) {
-        Log.d(TAG, "[NetworkRepository] addCall: Method=${call.method}, Endpoint=${call.endpoint}, URL=${call.url}")
         try {
-            val entity = call.toEntity()
-            Log.d(TAG, "[NetworkRepository] addCall: Saving NetworkEntity containing " +
-                    "urlLength=${entity.url.length}, " +
-                    "reqHeadersJsonLength=${entity.requestHeaders.length}, " +
-                    "resHeadersJsonLength=${entity.responseHeaders.length}, " +
-                    "reqBodyLength=${entity.requestBody?.length ?: 0}, " +
-                    "resBodyLength=${entity.responseBody?.length ?: 0}")
-            networkDao.insert(entity)
-            Log.d(TAG, "[NetworkRepository] addCall: SQLite insertion completed successfully.")
+            networkDao.insert(call.toEntity())
         } catch (e: Exception) {
-            Log.e(TAG, "[NetworkRepository] addCall: SQLite insertion failed: ${e.message}", e)
+            Log.e("NetworkRepository", "Failed to insert network call: ${e.message}", e)
         }
     }
 
     suspend fun clearAll() {
-        Log.d(TAG, "[NetworkRepository] clearAll: Wiping database network_calls table...")
         networkDao.deleteAll()
-        Log.d(TAG, "[NetworkRepository] clearAll: database wipe complete.")
     }
 
     private fun NetworkEntity.toDomain(): NetworkCall {
-        val reqMap = jsonToMap(requestHeaders)
-        val resMap = jsonToMap(responseHeaders)
         return NetworkCall(
             id = id,
             url = url,
             endpoint = endpoint,
             host = host,
             method = method,
-            requestHeaders = reqMap,
+            requestHeaders = jsonToMap(requestHeaders),
             requestBody = requestBody,
             requestSize = requestSize,
-            responseHeaders = resMap,
+            responseHeaders = jsonToMap(responseHeaders),
             responseBody = responseBody,
             responseSize = responseSize,
             statusCode = statusCode,
@@ -85,17 +63,15 @@ internal class NetworkRepository(private val networkDao: NetworkDao) {
     }
 
     private fun NetworkCall.toEntity(): NetworkEntity {
-        val reqJson = mapToJson(requestHeaders)
-        val resJson = mapToJson(responseHeaders)
         return NetworkEntity(
             url = url,
             endpoint = endpoint,
             host = host,
             method = method,
-            requestHeaders = reqJson,
+            requestHeaders = mapToJson(requestHeaders),
             requestBody = requestBody,
             requestSize = requestSize,
-            responseHeaders = resJson,
+            responseHeaders = mapToJson(responseHeaders),
             responseBody = responseBody,
             responseSize = responseSize,
             statusCode = statusCode,
@@ -108,11 +84,7 @@ internal class NetworkRepository(private val networkDao: NetworkDao) {
         )
     }
 
-    private fun mapToJson(map: Map<String, String>): String {
-        val json = JSONObject(map).toString()
-        Log.d(TAG, "[NetworkRepository] mapToJson: Map content = $map -> JSON string result = \"$json\"")
-        return json
-    }
+    private fun mapToJson(map: Map<String, String>): String = JSONObject(map).toString()
 
     private fun jsonToMap(json: String): Map<String, String> {
         val map = mutableMapOf<String, String>()
@@ -123,9 +95,8 @@ internal class NetworkRepository(private val networkDao: NetworkDao) {
                 val key = keys.next()
                 map[key] = jsonObject.getString(key)
             }
-            Log.d(TAG, "[NetworkRepository] jsonToMap: JSON string = \"$json\" -> Map content result = $map")
         } catch (e: Exception) {
-            Log.e(TAG, "[NetworkRepository] jsonToMap: Error parsing JSON headers: ${e.message}", e)
+            Log.e("NetworkRepository", "Error parsing headers JSON: ${e.message}", e)
         }
         return map
     }

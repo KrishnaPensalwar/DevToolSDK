@@ -73,10 +73,6 @@ internal fun DevToolOverviewScreen(
                             name = "Crash Reporting",
                             enabled = DevTool.config.isCrashReportingEnabled
                         )
-                        Spacer(Modifier.height(6.dp))
-
-                        //   FeatureStatusRow(name = "Performance Tracking", enabled = DevTool.config.isPerformanceMonitoringEnabled)
-
                     }
 
                 }

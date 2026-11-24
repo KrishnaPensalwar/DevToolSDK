@@ -1,6 +1,5 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network.json
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -9,6 +8,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -31,43 +33,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONArray
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun JsonArrayViewer(
     jsonArray: JSONArray,
     rootName: String,
     searchQuery: String = "",
     path: List<String> = emptyList(),
+    activeMatch: JsonMatch? = null,
     onFieldClick: ((List<String>, Any) -> Unit)? = null,
     onImageClick: (String) -> Unit
 ) {
 
-    val matchingIndices = remember(jsonArray, searchQuery) {
-        if (searchQuery.isBlank()) {
-            (0 until jsonArray.length()).toList()
-        } else {
-            (0 until jsonArray.length()).filter {
-                jsonContains(jsonArray.get(it), searchQuery)
-            }
-        }
-    }
-
-    if (matchingIndices.isEmpty() && searchQuery.isNotBlank()) return
-
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
+    val activeHeader = activeMatch.occurrenceAt(path, inKey = true)
+    val requester = remember { BringIntoViewRequester() }
 
     LaunchedEffect(searchQuery) {
-        if (searchQuery.isNotBlank() && matchingIndices.isNotEmpty()) {
+        if (searchQuery.isNotBlank() && jsonContains(jsonArray, searchQuery)) {
             expanded = true
         }
     }
-    Log.d("TAG", "JsonObject in NodeViewer: $jsonArray")
-
+    LaunchedEffect(activeMatch) {
+        if (activeMatch.isInside(path)) expanded = true
+        if (activeHeader >= 0) requester.bringIntoView()
+    }
 
     Column {
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .bringIntoViewRequester(requester)
                 .clickable { expanded = !expanded }
                 .padding(vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -86,14 +83,15 @@ fun JsonArrayViewer(
 
             HighlightedText(
                 text = rootName,
-                query = searchQuery,
+                query = if (path.isEmpty()) "" else searchQuery,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                activeOccurrence = activeHeader
             )
 
             Text(
-                text = " [${matchingIndices.size}]",
+                text = " [${jsonArray.length()}]",
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -117,14 +115,13 @@ fun JsonArrayViewer(
                     }
                     .padding(start = 8.dp)
             ) {
-
-                matchingIndices.forEach { index ->
-
+                for (index in 0 until jsonArray.length()) {
                     JsonNodeViewer(
                         key = "[$index]",
                         value = jsonArray.get(index),
                         searchQuery = searchQuery,
                         path = path + "[$index]",
+                        activeMatch = activeMatch,
                         onFieldClick = onFieldClick,
                         onImageClick = onImageClick
                     )

@@ -12,5 +12,16 @@ internal fun NetworkCall.matchesQuery(query: String, identity: RequestIdentity):
         identity.displayName.contains(q, ignoreCase = true) ||
         identity.graphQlOperationName.orEmpty().contains(q, ignoreCase = true) ||
         identity.graphQlOperationType?.name.orEmpty().contains(q, ignoreCase = true) ||
-        requestBody.orEmpty().contains(q, ignoreCase = true)
+        requestBody.orEmpty().contains(q, ignoreCase = true) ||
+        responseBody.orEmpty().contains(q, ignoreCase = true) ||
+        responseHeadersContain(q)
+}
+
+internal fun NetworkCall.responseBodyContains(query: String): Boolean =
+    query.isNotBlank() && responseBody.orEmpty().contains(query.trim(), ignoreCase = true)
+
+internal fun NetworkCall.responseHeadersContain(query: String): Boolean {
+    if (query.isBlank()) return false
+    val q = query.trim()
+    return responseHeaders.any { (k, v) -> k.contains(q, ignoreCase = true) || v.contains(q, ignoreCase = true) }
 }

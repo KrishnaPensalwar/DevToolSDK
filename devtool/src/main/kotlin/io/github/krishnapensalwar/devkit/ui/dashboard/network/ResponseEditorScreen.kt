@@ -1,6 +1,6 @@
 package io.github.krishnapensalwar.devkit.ui.dashboard.network
 
-import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,14 +14,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.krishnapensalwar.devkit.ui.components.DevToolSearchBar
 import io.github.krishnapensalwar.devkit.ui.dashboard.network.json.ExpandableJsonViewer
+import io.github.krishnapensalwar.devkit.ui.dashboard.network.json.rememberJsonSearch
 import androidx.navigation.NavController
 import io.github.krishnapensalwar.devkit.ui.navigation.pop
 import io.github.krishnapensalwar.devkit.ui.theme.*
@@ -47,31 +45,41 @@ fun ResponseEditorScreen(
     var jsonStringState by remember { mutableStateOf(initialBody) }
     var showRawEditor by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    val search = rememberJsonSearch(jsonStringState, searchQuery)
 
     // Status code editing state
     val safeInitialStatus = if (initialStatus in 100..599) initialStatus else 200
     var statusText by remember { mutableStateOf(safeInitialStatus.toString()) }
     val statusValue = statusText.trim().toIntOrNull()
     val isStatusValid = statusValue != null && statusValue in 100..599
+    val hasUnsavedChanges = jsonStringState != initialBody || statusText != safeInitialStatus.toString()
+    var showDiscardDialog by remember { mutableStateOf(false) }
+
+    fun requestBack() {
+        if (hasUnsavedChanges) showDiscardDialog = true else navController.pop()
+    }
+
+    BackHandler(enabled = hasUnsavedChanges) { showDiscardDialog = true }
 
     // Popup Edit Dialog state
     var fieldEditItem by remember { mutableStateOf<Pair<List<String>, Any>?>(null) }
     var editValueText by remember { mutableStateOf("") }
 
-    Scaffold(
-        containerColor = sdkBackground,
-        topBar = {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(sdkBackground)
+    ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding()
                     .background(sdkBackground)
                     .padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(
-                    onClick = { navController.pop() },
+                    onClick = { requestBack() },
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
@@ -113,7 +121,6 @@ fun ResponseEditorScreen(
                     IconButton(
                         enabled = isStatusValid,
                         onClick = {
-                            Log.d("NetworkInterceptor", "[ResponseEditorScreen] Save button clicked. Propagating updated JSON string + status=$statusValue to DB save: $jsonStringState")
                             onSave(jsonStringState, statusValue ?: safeInitialStatus)
                             navController.pop()
                         },
@@ -134,12 +141,10 @@ fun ResponseEditorScreen(
                     }
                 }
             }
-        }
-    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
                 .padding(16.dp)
         ) {
             Text(
@@ -165,6 +170,10 @@ fun ResponseEditorScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = if (showRawEditor) "Filter code text..." else "Search JSON fields...",
+                matchCount = if (showRawEditor) null else search.matches.size,
+                currentMatch = search.index,
+                onPreviousMatch = search::previous,
+                onNextMatch = search::next,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
@@ -199,6 +208,7 @@ fun ResponseEditorScreen(
                     ExpandableJsonViewer(
                         jsonString = jsonStringState,
                         searchQuery = searchQuery,
+                        activeMatch = search.active,
                         onImageClick = {},
                         onFieldClick = { path, value ->
                             fieldEditItem = Pair(path, value)
@@ -208,6 +218,23 @@ fun ResponseEditorScreen(
                 }
             }
         }
+    }
+
+    if (showDiscardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDiscardDialog = false },
+            title = { Text("Discard changes?", fontWeight = FontWeight.Bold) },
+            text = { Text("Unsaved response edits will be lost.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardDialog = false
+                    navController.pop()
+                }) { Text("Discard") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardDialog = false }) { Text("Keep editing") }
+            }
+        )
     }
 
     // Modal Field Value Editor Dialog
@@ -236,22 +263,17 @@ fun ResponseEditorScreen(
                 TextButton(
                     onClick = {
                         val parsedVal = parseTypedValue(editValueText)
-                        android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] Apply clicked: path=$path, editValueText='$editValueText', parsedVal=$parsedVal (${parsedVal.javaClass.simpleName})")
                         val updatedJsonStr = try {
                             val rootObj = JSONObject(jsonStringState)
                             updateJsonByPath(rootObj, path, parsedVal)
-                            android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] Successfully updated JSONObject by path")
-                            rootObj.toString(4) // Pretty print JSON
-                        } catch (e: Exception) {
-                            android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] JSONObject update failed: ${e.message}. Trying JSONArray...")
+                            rootObj.toString(4)
+                        } catch (_: Exception) {
                             try {
                                 val rootArr = JSONArray(jsonStringState)
                                 updateJsonByPath(rootArr, path, parsedVal)
-                                android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] Successfully updated JSONArray by path")
                                 rootArr.toString(4)
-                            } catch (err: Exception) {
-                                android.util.Log.e("NetworkInterceptor", "[ResponseEditorScreen] All JSON updates failed: ${err.message}", err)
-                                jsonStringState // Fallback if parsing fails
+                            } catch (_: Exception) {
+                                jsonStringState
                             }
                         }
                         jsonStringState = updatedJsonStr
@@ -368,7 +390,6 @@ private fun parseTypedValue(input: String): Any {
 
 // Hierarchical JSON Node traverser and updater
 private fun updateJsonByPath(json: Any, path: List<String>, newValue: Any) {
-    android.util.Log.d("NetworkInterceptor", "[ResponseEditorScreen] updateJsonByPath: class=${json.javaClass.simpleName}, path=$path, newValue=$newValue")
     if (path.isEmpty()) return
     val currentKey = path.first()
 

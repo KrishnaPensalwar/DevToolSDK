@@ -208,7 +208,11 @@ val httpClient = HttpClient(Android) {
 ```
 
 > [!TIP]
-> `withDevTool` works with any Ktor engine (e.g. `Android`, `CIO`, `OkHttp`, etc.). You do **not** need to add an OkHttp interceptor like `DevToolNetworkInterceptor` to Ktor clients; the `withDevTool` plugin intercepts and logs all HTTP calls automatically.
+> **Minimal app wiring (recommended):**
+> - **Ktor (any engine):** `withDevTool { }` — logging + mock live in the plugin. Do not also install Ktor `ResponseObserver` for DevTool.
+> - **OkHttp / Retrofit / Apollo:** `addInterceptor(DevToolNetworkInterceptor())`.
+>
+> You do **not** need both on the same OkHttp-backed Ktor client. Pick one path.
 
 ---
 

@@ -22,7 +22,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * OkHttp [Interceptor] that logs HTTP traffic, records performance timing, redacts sensitive headers,
+ * OkHttp [Interceptor] that logs HTTP traffic, redacts sensitive headers,
  * auto-caches responses, and short-circuits requests with mock data when mocking is enabled.
  */
 class DevToolNetworkInterceptor : Interceptor {
@@ -39,29 +39,23 @@ class DevToolNetworkInterceptor : Interceptor {
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        Log.d(TAG, "[DevToolNetworkInterceptor] Request arrived: Method=${request.method}, URL=${request.url}, Connection=${chain.connection()}")
-
-        Log.d(TAG, "[DevToolNetworkInterceptor] Extracting request body details...")
         val requestBodyString = NetworkParser.getRequestBodyString(request)
-        Log.d(TAG, "[DevToolNetworkInterceptor] Extracted request body: $requestBodyString")
         val startTime = System.nanoTime()
 
         var resolvedResponse: Response? = null
         var isMocked = false
-        var mockPlan: MockPlan? = null
 
         if (MockManager.isMockingEnabled()) {
-            Log.d(TAG, "[DevToolNetworkInterceptor] Mocking is enabled. Resolving mock for URL: ${request.url}")
             when (val resolution = MockManager.resolve(request, requestBodyString)) {
-                MockResolution.PassThrough -> {
-                    Log.d(TAG, "[DevToolNetworkInterceptor] API-level mock disabled. Passing through to network.")
-                }
+                MockResolution.PassThrough -> Unit
                 MockResolution.Missing -> {
-                    Log.d(TAG, "[DevToolNetworkInterceptor] No mock response found for this URL in database/cache. Returning detailed error response.")
                     val path = request.url.encodedPath
                     val errorJson = JSONObject().apply {
                         put("error", "DevToolSDK Mocking Enabled")
-                        put("message", "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response.")
+                        put(
+                            "message",
+                            "Mocking is enabled in DevTool SDK, but no response has been cached or configured for this endpoint: $path. Please disable mocking or record/configure a mock response."
+                        )
                         put("url", request.url.toString())
                     }.toString()
 
@@ -77,32 +71,29 @@ class DevToolNetworkInterceptor : Interceptor {
                     isMocked = true
                 }
                 is MockResolution.Failure -> {
-                    mockPlan = resolution.plan
                     sleepQuietly(resolution.plan.delayMs)
                     val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
                     persistCall(buildFailureCall(request, requestBodyString, duration, resolution.plan, resolution.exception))
                     throw resolution.exception
                 }
                 is MockResolution.Http -> {
-                    mockPlan = resolution.plan
                     sleepQuietly(resolution.plan.delayMs)
                     resolvedResponse = resolution.response
                     isMocked = true
-                    Log.d(TAG, "[DevToolNetworkInterceptor] Mock scenario ${resolution.plan.scenarioName}. SHORT-CIRCUITING network call.")
                 }
             }
         }
 
         val response = resolvedResponse ?: try {
-            Log.d(TAG, "[DevToolNetworkInterceptor] Proceeding network chain to: ${request.url.host}")
             chain.proceed(request)
-        } catch (e: Exception) {
-            Log.e(TAG, "[DevToolNetworkInterceptor] Network exception encountered: ${e.message}", e)
+        } catch (e: IOException) {
+            if (!isCancellation(chain, e)) {
+                Log.e(TAG, "Network exception: ${e.message}", e)
+            }
             throw e
         }
 
         val duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime)
-        Log.d(TAG, "[DevToolNetworkInterceptor] Response received in ${duration}ms. Code=${response.code}, Message=${response.message}, Mocked=$isMocked")
 
         if (!isMocked && response.isSuccessful) {
             try {
@@ -129,26 +120,29 @@ class DevToolNetworkInterceptor : Interceptor {
                             headersJson = headersJson,
                             body = responseBodyCopy
                         )
-                        Log.d(TAG, "[DevToolNetworkInterceptor] Saved response snapshot successfully.")
                     } catch (cacheErr: Exception) {
-                        Log.e(TAG, "[DevToolNetworkInterceptor] Error inserting response to cache: ${cacheErr.message}")
+                        Log.e(TAG, "Error caching response: ${cacheErr.message}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "[DevToolNetworkInterceptor] Failed to extract response data for cache: ${e.message}")
+                Log.e(TAG, "Failed to extract response for cache: ${e.message}")
             }
         }
 
-        Log.d(TAG, "[DevToolNetworkInterceptor] Parsing complete response and request context into NetworkCall model...")
-        val networkCall = NetworkParser.parseResponse(
-            response = response,
-            duration = duration,
-            requestBodyString = requestBodyString,
-            sensitiveHeaders = DevTool.config.sensitiveHeaders
+        persistCall(
+            NetworkParser.parseResponse(
+                response = response,
+                duration = duration,
+                requestBodyString = requestBodyString,
+                sensitiveHeaders = DevTool.config.sensitiveHeaders
+            )
         )
-
-        persistCall(networkCall)
         return response
+    }
+
+    private fun isCancellation(chain: Interceptor.Chain, error: IOException): Boolean {
+        if (chain.call().isCanceled()) return true
+        return error.message.equals("Canceled", ignoreCase = true)
     }
 
     private fun persistCall(networkCall: NetworkCall) {

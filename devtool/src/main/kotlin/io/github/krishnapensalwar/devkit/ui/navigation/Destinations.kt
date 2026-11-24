@@ -1,6 +1,5 @@
 package io.github.krishnapensalwar.devkit.ui.navigation
 
-import android.util.Log
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import io.github.krishnapensalwar.devkit.ui.dashboard.DashboardTab
@@ -16,7 +15,7 @@ internal sealed interface Destination {
         val requestBody: String = "",
         val identityKey: String = ""
     ) : Destination
-    data class NetworkDetail(val callId: Long) : Destination
+    data class NetworkDetail(val callId: Long, val searchQuery: String = "") : Destination
     data class MockScenarios(
         val url: String,
         val method: String,
@@ -52,7 +51,10 @@ internal fun NavController.navigateTo(destination: Destination) {
             navigate("response_editor")
         }
 
-        is Destination.NetworkDetail -> navigate("network_detail/${destination.callId}")
+        is Destination.NetworkDetail -> {
+            currentBackStackEntry?.savedStateHandle?.set("detail_query", destination.searchQuery)
+            navigate("network_detail/${destination.callId}")
+        }
 
         is Destination.MockScenarios -> {
             currentBackStackEntry?.savedStateHandle?.set("mock_url", destination.url)

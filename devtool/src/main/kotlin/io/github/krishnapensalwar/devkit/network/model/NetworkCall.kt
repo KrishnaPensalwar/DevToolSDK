@@ -1,6 +1,6 @@
 package io.github.krishnapensalwar.devkit.network.model
 
-internal data class NetworkCall(
+data class NetworkCall(
     val id: Long = 0,
     val url: String,
     val endpoint: String,
@@ -20,3 +20,14 @@ internal data class NetworkCall(
     val exception: String?,
     val protocol: String
 )
+
+private fun NetworkCall.responseHeader(name: String): String? =
+    responseHeaders.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+
+/** Set by the interceptor only on responses DevTool served itself, so it reflects how this call was actually answered. */
+val NetworkCall.mockSource: String? get() = responseHeader("X-Mock-Source")
+
+val NetworkCall.mockScenarioName: String? get() = responseHeader("X-Mock-Scenario")
+
+val NetworkCall.isMocked: Boolean
+    get() = mockSource != null || exception?.contains("DevTool mock") == true
